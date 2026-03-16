@@ -1,13 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+const showUserMenu = ref(false);
 
 const isLoggedIn = ref(false);
 const userName = ref('Admin');
-const showUserMenu = ref(false);
-
-function toggleLogin() {
-  isLoggedIn.value = !isLoggedIn.value;
-}
 
 function toggleUserMenu() {
   showUserMenu.value = !showUserMenu.value;
@@ -60,45 +56,18 @@ function toggleUserMenu() {
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </button>
-
-        <!-- Dropdown menu -->
-        <Transition name="dropdown">
-          <div class="user-dropdown" v-if="showUserMenu">
-            <a href="#" class="dropdown-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-              Mi Perfil
-            </a>
-            <a href="#" class="dropdown-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-              </svg>
-              Configuración
-            </a>
-            <div class="dropdown-divider"></div>
-            <a href="#" class="dropdown-item logout" @click.prevent="toggleLogin">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              Cerrar Sesión
-            </a>
-          </div>
-        </Transition>
       </div>
 
-      <button v-else class="login-btn" @click="toggleLogin">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-          <polyline points="10 17 15 12 10 7" />
-          <line x1="15" y1="12" x2="3" y2="12" />
+      <RouterLink to="/login">
+        <button class="login-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+            <polyline points="10 17 15 12 10 7" />
+            <line x1="15" y1="12" x2="3" y2="12" />
         </svg>
         <span>Iniciar Sesión</span>
       </button>
+      </RouterLink>
     </div>
   </header>
 </template>
