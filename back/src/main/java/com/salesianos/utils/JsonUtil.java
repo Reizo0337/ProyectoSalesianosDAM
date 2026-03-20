@@ -2,6 +2,8 @@ package com.salesianos.utils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
@@ -25,6 +27,58 @@ public class JsonUtil {
                 sb.append(line);
             }
         }
+        return sb.toString();
+    }
+
+    public static String findJsonField(String json, String fieldName) {
+        if (json == null || json.isEmpty()) return null;
+        Pattern pattern = Pattern.compile("\"" + fieldName + "\":\\s*\"([^\"]*)\"");
+        Matcher matcher = pattern.matcher(json);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    public static String mapToJson(java.util.Map<String, String> map) {
+        StringBuilder sb = new StringBuilder("{");
+        boolean first = true;
+        if (map != null) {
+            for (java.util.Map.Entry<String, String> entry : map.entrySet()) {
+                if (!first) sb.append(",");
+                sb.append("\"").append(escape(entry.getKey())).append("\":\"")
+                  .append(escape(entry.getValue())).append("\"");
+                first = false;
+            }
+        }
+        if (!first) {
+            sb.append(",");
+            sb.append("\"status\":\"success\"}");
+        } else {
+            sb.append("}");
+        }
+        return sb.toString();
+    }
+
+    public static String listToJson(java.util.List<java.util.Map<String, String>> list) {
+        StringBuilder sb = new StringBuilder("{\"status\":\"success\",\"presupuestos\":[");
+        boolean firstMap = true;
+        if (list != null) {
+            for (java.util.Map<String, String> map : list) {
+                if (!firstMap) sb.append(",");
+                sb.append("{");
+                boolean firstEntry = true;
+                for (java.util.Map.Entry<String, String> entry : map.entrySet()) {
+                    if (!firstEntry) sb.append(",");
+                    sb.append("\"").append(escape(entry.getKey())).append("\":\"")
+                      .append(escape(entry.getValue())).append("\"");
+                    firstEntry = false;
+                }
+                sb.append("}");
+                firstMap = false;
+            }
+        }
+        sb.append("]}");
         return sb.toString();
     }
 

@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-const showUserMenu = ref(false);
+import { useAuthStore } from '@/stores/auth';
+import { useRouter } from 'vue-router';
 
-const isLoggedIn = ref(false);
-const userName = ref('Admin');
+const authStore = useAuthStore();
+const router = useRouter();
+const showUserMenu = ref(false);
 
 function toggleUserMenu() {
   showUserMenu.value = !showUserMenu.value;
+}
+
+async function handleLogout() {
+  await authStore.logout();
+  showUserMenu.value = false;
+  router.push('/login');
 }
 </script>
 
@@ -39,8 +47,8 @@ function toggleUserMenu() {
         <span class="notification-badge">3</span>
       </button>
 
-      <!-- User / Login -->
-      <div class="user-area" v-if="isLoggedIn">
+      <!-- User Area (Only if Logged In) -->
+      <div class="user-area" v-if="authStore.isAuthenticated">
         <button class="user-btn" @click="toggleUserMenu">
           <div class="user-avatar">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -49,24 +57,43 @@ function toggleUserMenu() {
             </svg>
           </div>
           <div class="user-info">
-            <span class="user-greeting">Bienvenido,</span>
-            <span class="user-name">{{ userName }}</span>
+            <span class="user-greeting">{{ authStore.user?.nombre || "Usuario" }}</span>
           </div>
           <svg class="chevron" :class="{ open: showUserMenu }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </button>
+
+        <!-- User Dropdown Menu -->
+        <transition name="dropdown">
+          <div v-if="showUserMenu" class="user-dropdown">
+            <RouterLink to="/profile" class="dropdown-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+              </svg>
+              <span>Mi Perfil</span>
+            </RouterLink>
+            <div class="dropdown-divider"></div>
+            <button @click="handleLogout" class="dropdown-item logout">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span>Cerrar Sesión</span>
+            </button>
+          </div>
+        </transition>
       </div>
 
-      <RouterLink to="/login">
+      <!-- Login Button (Only if NOT Logged In) -->
+      <RouterLink to="/login" v-else>
         <button class="login-btn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
             <polyline points="10 17 15 12 10 7" />
             <line x1="15" y1="12" x2="3" y2="12" />
-        </svg>
-        <span>Iniciar Sesión</span>
-      </button>
+          </svg>
+          <span>Iniciar Sesión</span>
+        </button>
       </RouterLink>
     </div>
   </header>

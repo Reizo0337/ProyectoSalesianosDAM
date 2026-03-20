@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from './stores/auth'
 import Header from './components/common/Header.vue';
 import Aside from './components/common/Aside.vue';
 
 const route = useRoute()
+const authStore = useAuthStore()
+
 const showLayout = computed(() => !route.meta.hideLayout)
+
+onMounted(() => {
+  authStore.checkAuth()
+})
 </script>
 
 <template>

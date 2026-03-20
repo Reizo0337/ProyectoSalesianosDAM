@@ -1,7 +1,22 @@
 <script setup lang="ts">
 import Card from '../components/common/Card.vue';
 import Table from '../components/common/Table.vue';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+import { usePresupuestoStore } from '@/stores/presupuesto';
+const authStore = useAuthStore();
+const presupuestoStore = usePresupuestoStore();
+
+const rolUsuario = authStore.user?.rol;
+const depUsuario = authStore.user?.idDepartamento;
+
+onMounted(async () => {
+  if (rolUsuario === 'Admin') {
+    await presupuestoStore.getAllPresupuestos();
+  } else if (depUsuario) {
+    await presupuestoStore.getPresupuestosByDept(depUsuario);
+  }
+});
 
 const presupuestoInicial = 5000;
 const presupuestoGastado = 2000;
@@ -28,9 +43,6 @@ const orderData = ref([
 </script>
 
 <template>
-  <div class="welcome">
-    <h3>Bienvenido, Admin</h3>
-  </div>
   <div class="title">
     <h2>Presupuesto Informática</h2>
   </div>

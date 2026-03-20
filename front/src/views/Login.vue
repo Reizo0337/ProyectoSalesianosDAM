@@ -1,21 +1,33 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
-const email = ref('')
+const email = ref('') // Note: the backend uses 'usuario' but form uses email. I'll pass email as usuario.
 const password = ref('')
 const showPassword = ref(false)
 const isLoading = ref(false)
 const rememberMe = ref(false)
+const loginError = ref('')
 
 async function handleLogin() {
   if (!email.value || !password.value) return
+  
   isLoading.value = true
-  await new Promise(resolve => setTimeout(resolve, 1500))
+  loginError.value = ''
+  
+  const success = await authStore.login(email.value, password.value)
+  
   isLoading.value = false
-  router.push('/')
+  
+  if (success) {
+    router.push('/')
+  } else {
+    loginError.value = authStore.error || 'Error al iniciar sesión'
+  }
 }
 </script>
 
@@ -123,13 +135,12 @@ async function handleLogin() {
             </div>
           </div>
 
-          <!-- Options row -->
-          <div class="form-options">
-            <label class="checkbox-label">
-              <input type="checkbox" v-model="rememberMe" />
-              Recordarme
-            </label>
-            <a href="#" class="forgot-link">¿Olvidaste tu contraseña?</a>
+          <!-- Error Message -->
+          <div v-if="loginError" class="error-banner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{{ loginError }}</span>
           </div>
 
           <!-- Submit -->
@@ -477,6 +488,33 @@ async function handleLogin() {
 .forgot-link:hover {
   color: #b91c1c;
   text-decoration: underline;
+}
+
+/* ─── Error Banner ────────────────────────────── */
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 500;
+  animation: shake 0.4s ease-in-out;
+}
+
+.error-banner svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
 }
 
 /* ─── Submit Button ───────────────────────────── */
