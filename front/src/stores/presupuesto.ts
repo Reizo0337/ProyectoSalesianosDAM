@@ -3,8 +3,11 @@ import api from '@/api/axios';
 
 interface Presupuesto {
     cantidad: number;
-    observaciones: string;
-    fechaCreacion: Date;
+    gasto: number;
+    nombrePresupuesto: string;
+    idPresupuesto: number;
+    nombreDepartamento: string;
+    Codigo: string;
 }
 
 export const usePresupuestoStore = defineStore('presupuesto', {

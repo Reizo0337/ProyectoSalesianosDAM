@@ -6,6 +6,7 @@ const props = defineProps<{
   type: 'activity' | 'project' | 'user' | 'task' | 'stats'
   title?: string
   data?: string | number
+  suffix?: string
   icon?: string
   href?: string
   color?: string
@@ -22,7 +23,13 @@ const animateValue = (start: number, end: number, duration: number) => {
   const step = (timestamp: number) => {
     if (!startTimestamp) startTimestamp = timestamp;
     const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-    displayValue.value = Math.floor(progress * (end - start) + start);
+    const currentRawValue = progress * (end - start) + start;
+    
+    displayValue.value = currentRawValue.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    });
+
     if (progress < 1) {
       window.requestAnimationFrame(step);
     }
@@ -31,18 +38,26 @@ const animateValue = (start: number, end: number, duration: number) => {
 };
 
 watch(() => props.data, (newVal) => {
-  if (props.animate && typeof newVal === 'number') {
-    animateValue(Number(displayValue.value) || 0, newVal, 1000);
+  const numericVal = typeof newVal === 'string' ? parseFloat(newVal) : newVal;
+  if (props.animate && typeof numericVal === 'number' && !isNaN(numericVal)) {
+    const currentVal = typeof displayValue.value === 'string' 
+      ? parseFloat(displayValue.value.replace(/[^\d.-]/g, '')) 
+      : displayValue.value;
+    animateValue(Number(currentVal) || 0, numericVal, 1000);
   } else {
-    displayValue.value = newVal ?? 0;
+    displayValue.value = numericVal?.toLocaleString() ?? '0';
   }
-}, { immediate: false });
+}, { immediate: true });
 
 onMounted(() => {
-  if (props.animate && typeof props.data === 'number') {
-    animateValue(0, props.data, 1000);
+  const numericVal = typeof props.data === 'string' ? parseFloat(props.data) : props.data;
+  if (props.animate && typeof numericVal === 'number' && !isNaN(numericVal)) {
+    // If the watch haven't already started an animation with these values
+    if (displayValue.value === 0 || displayValue.value === '0') {
+      animateValue(0, numericVal, 1000);
+    }
   } else {
-    displayValue.value = props.data ?? 0;
+    displayValue.value = numericVal?.toLocaleString() ?? '0';
   }
 });
 </script>
@@ -51,109 +66,160 @@ onMounted(() => {
   <div
     class="statistics-card"
     :class="typeClass"
-    :style="background ? { backgroundColor: background } : {}"
+    :style="background ? { background: background } : {}"
   >
-    <div class="title">
-      <span
-        class="material-symbols-outlined"
-        :style="{ color: color }"
-        v-if="icon"
-        >{{ icon }}</span
-      >
-      <h3>{{ title }}</h3>
+    <div class="card-header">
+      <div class="icon-wrapper" v-if="icon" :style="{ backgroundColor: 'rgba(255,255,255,0.2)' }">
+        <span class="material-symbols-outlined">{{ icon }} </span>
+      </div>
+      <h3 v-if="title">{{ title }}</h3>
       <slot name="actions"></slot>
     </div>
-    <div class="unify">
-      <div class="data">
-        <p v-if="props.data !== undefined && props.data !== null">{{ displayValue }}</p>
-        <slot name="content"></slot>
+    
+    <div class="card-body">
+      <div class="data-wrapper">
+        <span class="value">{{ displayValue }}</span>
+        <span class="suffix" v-if="suffix">{{ suffix }}</span>
       </div>
+      <slot name="content"></slot>
+      
       <div class="localizacion" v-if="localizacion">
+        <span class="material-symbols-outlined">location_on</span>
         <p>{{ localizacion }}</p>
       </div>
-      <RouterLink v-if="href" class="link" :to="href">
-        Ver detalles
+    </div>
+
+    <div class="card-footer" v-if="href">
+      <RouterLink :to="href" class="link">
+        <span>Ver detalles</span>
+        <span class="material-symbols-outlined">arrow_forward</span>
       </RouterLink>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* --- 1. BASE COMÚN --- */
 .statistics-card {
   display: flex;
   flex-direction: column;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
-  border: 1px solid var(--border-color);
-  box-sizing: border-box;
-  background-color: var(--card-bg);
-  transition: all 0.3s ease;
+  border-radius: 16px;
+  padding: 24px;
+  background-color: var(--card-bg, #ffffff);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
 }
 
-.title {
+.statistics-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.card-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: inherit;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.card-body {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.data-wrapper {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.suffix {
+  font-size: 1.25rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.localizacion {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 12px;
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+.card-footer {
+  margin-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 16px;
+}
+
+.link {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.title h3 {
-  color: var(--stats-primary);
-  transition: color 0.3s ease;
-}
-
-.unify {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-.data {
-  color: var(--button-primary);
-  transition: color 0.3s ease;
-}
-.link {
-  font-size: 14px;
-  color: var(--button-primary);
   text-decoration: none;
-  transition: color 0.3s ease;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: inherit;
+  transition: opacity 0.2s;
 }
 
-/* --- 3. VARIANTES --- */
-.type-activity {
-  background-color: #eaebed;
-  width: 200px;
+.link:hover {
+  opacity: 0.7;
 }
 
-/* --- 4. STATS (Específicos) --- */
+/* --- STATS VARIANT --- */
 .type-stats {
-  width: 300px;
-  min-height: 100px;
-  height: 150px;
-  position: relative;
-  color: #fff;
+  color: white;
   border: none;
+  min-width: 280px;
 }
-.type-stats .title {
-  justify-content: center;
-  color: #fff;
+
+.type-stats .icon-wrapper {
+  background-color: rgba(255, 255, 255, 0.2) !important;
 }
-.type-stats .data {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 38px;
-  font-weight: bold;
-  color: #fff;
-}
+
 .type-stats .link {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #fff;
+  color: white;
+}
+
+/* ACTIVITY VARIANT (Small) */
+.type-activity {
+  background-color: #f3f4f6;
+  width: 220px;
+  padding: 16px;
+}
+
+.type-activity .value {
+  font-size: 1.5rem;
 }
 </style>

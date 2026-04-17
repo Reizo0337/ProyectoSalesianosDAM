@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 
+const authStore = useAuthStore();
 const route = useRoute();
 const isCollapsed = ref(false);
 
@@ -11,7 +13,8 @@ const menuItems = [
     to: '/',
     icon: 'home',
   },
-  {
+  // if it's not admin user isn't avaible to see presupuestos.
+ {
     label: 'Presupuestos',
     to: '/presupuestos',
     icon: 'budget',
@@ -72,7 +75,7 @@ function toggleCollapse() {
       <div class="nav-section">
         <span class="nav-label">SOPORTE</span>
         <ul class="nav-list">
-          <li v-for="item in bottomItems" :key="item.to">
+          <li v-for="item in bottomItems" :key="item.to" >
             <RouterLink
               :to="item.to"
               class="nav-item"

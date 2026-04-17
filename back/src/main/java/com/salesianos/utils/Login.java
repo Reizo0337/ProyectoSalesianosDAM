@@ -20,12 +20,13 @@ public class Login {
 
         // Updated query based on user requirement: Nombre, correo, rol, idDepartamento
         // Added WHERE clause and proper aliases to facilitate mapping
-        String sql = "SELECT u.Nombre as usuario_nombre, u.correo, r.nombre as rol_nombre, d.Nombre as dep_nombre " +
+        String sql = "SELECT u.Nombre as usuario_nombre, u.correo, r.Nombre as rol_nombre, d.Nombre as dep_nombre, d.Codigo as dep_codigo " +
                      "FROM usuario u " +
-                     "JOIN roles r ON u.idrol = r.nombre " +
-                     "JOIN departamento d ON u.iddepartamento = d.Nombre " +
-                     "WHERE u.correo = ? AND u.contrasena = ?;";
+                     "LEFT JOIN roles r ON u.idRol = r.idRol " +
+                     "LEFT JOIN departamento d ON u.idDepartamento = d.idDepartamento " +
+                     "WHERE u.Correo = ? AND u.Contrasena = ?";
 
+        System.out.println("Login attempt: " + correo + " / " + password);
         try (Connection conn = DatabaseManager.getConnection("webapp");
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -39,6 +40,7 @@ public class Login {
                     user.put("correo", rs.getString("correo"));
                     user.put("rol", rs.getString("rol_nombre"));
                     user.put("idDepartamento", rs.getString("dep_nombre"));
+                    user.put("codigoDepartamento", rs.getString("dep_codigo"));
                     return user;
                 }
             }

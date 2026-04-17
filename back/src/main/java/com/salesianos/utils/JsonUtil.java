@@ -19,9 +19,12 @@ public class JsonUtil {
         return String.format("{\"status\":\"success\",\"message\":\"%s\"}", escape(message));
     }
 
-    public static String getRequestBody(HttpServletRequest request) throws IOException {
+    /**
+     * Lee el cuerpo de la petición y lo devuelve como String.
+     */
+    public static String getRequestBody(jakarta.servlet.http.HttpServletRequest request) throws IOException {
         StringBuilder sb = new StringBuilder();
-        try (BufferedReader reader = request.getReader()) {
+        try (java.io.BufferedReader reader = request.getReader()) {
             String line;
             while ((line = reader.readLine()) != null) {
                 sb.append(line);
@@ -61,7 +64,13 @@ public class JsonUtil {
     }
 
     public static String listToJson(java.util.List<java.util.Map<String, String>> list) {
-        StringBuilder sb = new StringBuilder("{\"status\":\"success\",\"presupuestos\":[");
+        return listToJson(list, "data");
+    }
+
+    public static String listToJson(java.util.List<java.util.Map<String, String>> list, String key) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\"status\":\"success\",");
+        sb.append("\"").append(key).append("\":[");
         boolean firstMap = true;
         if (list != null) {
             for (java.util.Map<String, String> map : list) {

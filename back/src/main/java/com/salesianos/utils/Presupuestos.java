@@ -17,7 +17,8 @@ public class Presupuestos {
     private static final Logger LOGGER = Logger.getLogger(Presupuestos.class.getName());
 
     public List<Map<String, String>> getAllPresupuestos() {
-        String sql = "SELECT * FROM presupuesto";
+        String sql = "SELECT p.idPresupuesto, p.Codigo, p.Nombre AS nombrePresupuesto, p.idDepartamento, d.Nombre AS nombreDepartamento, p.cantidad, p.gasto " +
+                     "FROM presupuesto p LEFT JOIN departamento d ON p.idDepartamento = d.idDepartamento";
         List<Map<String, String>> list = new ArrayList<>();
         try (Connection conn = DatabaseManager.getConnection("webapp");
              PreparedStatement stmt = conn.prepareStatement(sql);
@@ -47,7 +48,10 @@ public class Presupuestos {
             throw new IllegalArgumentException("department cannot be null");
         }
 
-        String sql = "CALL obtener_ordenes_por_departamento(?);";
+        String sql = "SELECT p.idPresupuesto, p.Codigo, p.Nombre AS nombrePresupuesto, p.idDepartamento, d.Nombre AS nombreDepartamento, p.cantidad, p.gasto " +
+                     "FROM presupuesto p " +
+                     "JOIN departamento d ON p.idDepartamento = d.idDepartamento " +
+                     "WHERE d.Nombre = ?";
         List<Map<String, String>> list = new ArrayList<>();
 
         try (Connection conn = DatabaseManager.getConnection("webapp");
