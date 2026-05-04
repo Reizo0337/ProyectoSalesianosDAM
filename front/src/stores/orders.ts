@@ -2,17 +2,18 @@ import { defineStore } from 'pinia';
 import api from '@/api/axios';
 
 interface Order {
-    idOrden: number;
+    idorden: number;
     numero_orden: string;
     numero_plan: string;
-    Cantidad: number;
-    Observaciones: string;
-    fechaCreacion: string;
-    idPresupuesto: number;
-    Estado: string;
-    Tipo: string;
-    Inversion: string;
-    numFacturas?: string;
+    cantidad: number;
+    observaciones: string;
+    fechacreacion: string;
+    idpresupuesto: number;
+    estado: string;
+    tipo: string;
+    inversion: string;
+    nombredepartamento?: string;
+    numfacturas?: string;
 }
 
 interface Product {
@@ -111,7 +112,7 @@ export const useOrderStore = defineStore('order', {
                 this.loading = false;
             }
         },
-        
+
         async createProduct(productData: { nombre: string; descripcion: string; idProveedor?: string }) {
             try {
                 const response = await api.post('/productos', productData);
@@ -136,6 +137,24 @@ export const useOrderStore = defineStore('order', {
                 this.loading = false;
             }
             return null;
+        },
+
+        async uploadInvoice(orderId: number | string, file: File) {
+            const formData = new FormData();
+            formData.append('id', orderId.toString());
+            formData.append('file', file);
+
+            try {
+                const response = await api.post('/ordenes/upload-invoice', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                return response.data;
+            } catch (err) {
+                console.error('Error uploading invoice:', err);
+                throw err;
+            }
         }
     },
 });

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import Card from '../components/common/Card.vue';
-import Table from '../components/common/Table.vue';
+import OrderTable from '../components/orders/OrderTable.vue';
 import { useAuthStore } from '@/stores/auth';
 import { usePresupuestoStore } from '@/stores/presupuesto';
 import { useOrderStore } from '@/stores/orders';
@@ -10,100 +10,91 @@ const authStore = useAuthStore();
 const presupuestoStore = usePresupuestoStore();
 const ordenStore = useOrderStore();
 
-const rolUsuario = authStore.user?.rol;
-const depUsuario = authStore.user?.idDepartamento;
+const rolUsuario = computed(() => authStore.user?.rol);
+const selectedDept = ref<string>('Resumen Global');
 
 onMounted(async () => {
-  if (rolUsuario === 'Administrador') {
+  const rol = authStore.user?.rol;
+  const dep = authStore.user?.idDepartamento;
+
+  if (rol === 'Administrador') {
     await presupuestoStore.getAllPresupuestos();
     await ordenStore.getAllOrders();
-  } else if (depUsuario) {
-    await presupuestoStore.getPresupuestosByDept(depUsuario);
-    await ordenStore.getOrdersByDept(depUsuario);
+  } else if (dep) {
+    await presupuestoStore.getPresupuestosByDept(dep);
+    await ordenStore.getOrdersByDept(dep);
+    
+    // Auto-select the user's department if available
+    if (presupuestoStore.presupuestos.length > 0) {
+      selectedDept.value = presupuestoStore.presupuestos[0].nombredepartamento;
+    }
   }
 });
 
-const dashboardStats = computed(() => {
-  const budgets = presupuestoStore.presupuestos;
-  if (!budgets || budgets.length === 0) return { general: [], departments: [] };
+const uniqueDepartments = computed(() => {
+  const depts = presupuestoStore.presupuestos.map(p => p.nombredepartamento).filter(Boolean);
+  return ['Resumen Global', ...new Set(depts)];
+});
 
-  const calculateStats = (list: any[]) => {
-    const total = list.reduce((acc, b) => acc + (Number(b.cantidad) || 0), 0);
-    const spent = list.reduce((acc, b) => acc + (Number(b.gasto) || 0), 0);
-    const remaining = total - spent;
-    return [
-      {
-        title: 'Presupuesto Inicial',
-        data: total,
-        suffix: '€',
-        icon: 'payments',
-        href: '/presupuestos',
-        background: 'linear-gradient(135deg, #20a8d8 0%, #178ab3 100%)'
-      },
-      {
-        title: 'Presupuesto Restante',
-        data: remaining,
-        suffix: '€',
-        icon: 'account_balance_wallet',
-        href: '/presupuestos',
-        background: 'linear-gradient(135deg, #20d848 0%, #16a334 100%)'
-      },
-      {
-        title: 'Presupuesto Gastado',
-        data: spent,
-        suffix: '€',
-        icon: 'shopping_cart_checkout',
-        href: '/presupuestos',
-        background: 'linear-gradient(135deg, #20c9b9 0%, #169288 100%)'
-      }
-    ];
+const filteredBudgets = computed(() => {
+  if (selectedDept.value === 'Resumen Global') return presupuestoStore.presupuestos;
+  return presupuestoStore.presupuestos.filter(p => p.nombredepartamento === selectedDept.value);
+});
+
+const calculateStats = (list: any[]) => {
+  const total = list.reduce((acc, b) => {
+    const val = b.cantidad || b.Cantidad || 0;
+    return acc + Number(val);
+  }, 0);
+  const spent = list.reduce((acc, b) => {
+    const val = b.gasto || b.Gasto || 0;
+    return acc + Number(val);
+  }, 0);
+  const remaining = total - spent;
+  return { total, spent, remaining };
+};
+
+const statsByType = computed(() => {
+  console.log('Stats calculation - Data:', filteredBudgets.value);
+  
+  const isInvestment = (p: any) => {
+    const t = (p.type || p.Type || '').toLowerCase();
+    return t === 'planinversion' || t.includes('inversion') || t.includes('plan');
   };
 
-  const general = calculateStats(budgets);
+  const isPresupuesto = (p: any) => {
+    const t = (p.type || p.Type || '').toLowerCase();
+    // It's a budget if it's explicitly 'presupuesto' OR if it has NO type and isn't an investment
+    return t === 'presupuesto' || t === 'ordinario' || (!t && !isInvestment(p));
+  };
 
-  if (rolUsuario === 'Administrador') {
-    const grouped: Record<string, any[]> = {};
-    budgets.forEach(b => {
-      const key = b.nombredepartamento || 'Sin Departamento';
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(b);
-    });
+  const budgets = filteredBudgets.value.filter(isPresupuesto);
+  const investments = filteredBudgets.value.filter(isInvestment);
 
-    const departments = Object.keys(grouped).map(name => ({
-      id: name,
-      name: name,
-      stats: calculateStats(grouped[name])
-    }));
+  console.log('Resulting Groups - Budgets:', budgets.length, 'Investments:', investments.length);
 
-    return { general, departments };
-  }
-
-  return { general, departments: [] };
-});
-
-const showMoreDetails = ref(false);
-
-const visibleDepartments = computed(() => {
-  return dashboardStats.value.departments;
+  return {
+    presupuesto: calculateStats(budgets),
+    planInversion: calculateStats(investments),
+    global: calculateStats(filteredBudgets.value)
+  };
 });
 
 const viewTitle = computed(() => {
-  if (rolUsuario === 'Administrador') return 'Panel de Administración Global';
-  return `Presupuesto ${depUsuario || 'Mi Departamento'}`;
+  if (selectedDept.value === 'Resumen Global') return 'Presupuestos: Todos los departamentos';
+  return `Presupuestos: ${selectedDept.value}`;
 });
 
-const orderHeaders = ['ID', 'Proveedor', 'Nº Orden', 'Contenido', 'Presupuesto', 'Importe', 'Estado']
-const orderData = computed(() => {
-  const orders = ordenStore.orders || [];
-  return orders.map(o => [
-    o.idOrden || o.idorden || '',
-    o.proveedor_nombre || 'S/P',
-    o.numero_orden || 'N/A',
-    o.Observaciones || 'Sin observaciones',
-    o.idPresupuesto || o.idpresupuesto || '',
-    (o.Cantidad || 0).toLocaleString() + '€',
-    o.Estado || 'Pendiente'
-  ]);
+const filteredOrdersTable = computed(() => {
+  let orders = ordenStore.orders || [];
+  
+  if (selectedDept.value !== 'Resumen Global') {
+    orders = orders.filter(o => {
+      const deptName = o.nombredepartamento || o.nombreDepartamento || '';
+      return deptName.toLowerCase() === selectedDept.value.toLowerCase();
+    });
+  }
+  return orders;
 });
 </script>
 
@@ -112,67 +103,90 @@ const orderData = computed(() => {
     <header class="dashboard-header animate-fade-in">
       <div class="header-content">
         <h1>{{ viewTitle }}</h1>
-        <p class="subtitle" v-if="rolUsuario === 'Administrador'">Panel de control integral para la gestión financiera y operativa.</p>
-        <p class="subtitle" v-else>Estado actual de la asignación presupuestaria y órdenes de compra.</p>
-      </div>
-      <div class="header-actions" v-if="rolUsuario === 'Administrador'">
-        <button class="btn-primary">
-          <span class="material-symbols-outlined">analytics</span>
-          Informe Global
-        </button>
+        <p class="subtitle">Análisis detallado de recursos y ejecución financiera.</p>
       </div>
     </header>
 
-    <!-- 1. General Summary Section (Always Visible) -->
-    <section class="dashboard-section animate-fade-in" style="animation-delay: 0.1s">
+    <!-- Floating Department Buttons -->
+    <div class="dept-selector animate-fade-in" style="animation-delay: 0.1s">
+      <button 
+        v-for="dept in uniqueDepartments" 
+        :key="dept"
+        class="dept-btn"
+        :class="{ active: selectedDept === dept }"
+        @click="selectedDept = dept"
+      >
+        {{ dept }}
+      </button>
+    </div>
+
+    <!-- 1. Presupuestos Summary -->
+    <section class="dashboard-section animate-fade-in" style="animation-delay: 0.2s">
       <div class="section-header">
-        <span class="material-symbols-outlined">monitoring</span>
-        <h2>Resumen Operativo</h2>
+        <span class="material-symbols-outlined">payments</span>
+        <h2>Presupuestos Ordinarios</h2>
       </div>
       <div class="statistics-grid">
         <Card
-          v-for="(stat, index) in dashboardStats.general"
-          :key="stat.title"
           type="stats"
-          v-bind="stat"
-          :animate="true"
-          :style="{ animationDelay: `${0.2 + index * 0.1}s` }"
+          title="Asignado"
+          :data="statsByType.presupuesto.total"
+          suffix="€"
+          icon="account_balance"
+          background="linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)"
+        />
+        <Card
+          type="stats"
+          title="Gastado"
+          :data="statsByType.presupuesto.spent"
+          suffix="€"
+          icon="shopping_cart"
+          background="linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)"
+        />
+        <Card
+          type="stats"
+          title="Disponible"
+          :data="statsByType.presupuesto.remaining"
+          suffix="€"
+          icon="account_balance_wallet"
+          background="linear-gradient(135deg, #10b981 0%, #059669 100%)"
         />
       </div>
     </section>
 
-    <!-- 2. The Great "See More" Toggle (Only for Departments now) -->
-    <div v-if="rolUsuario === 'Administrador' && dashboardStats.departments.length > 0" class="show-more-container animate-fade-in" style="animation-delay: 0.4s">
-      <button @click="showMoreDetails = !showMoreDetails" class="btn-secondary toggle-main">
-        <span class="material-symbols-outlined">{{ showMoreDetails ? 'keyboard_double_arrow_up' : 'expand_more' }}</span>
-        {{ showMoreDetails ? 'Ocultar desglose por departamentos' : `Ver desglose por departamentos (${dashboardStats.departments.length})` }}
-      </button>
-    </div>
-
-    <!-- 3. Hidden Detailed Intelligence (Department Accordion) -->
-    <transition name="accordion">
-      <div v-if="showMoreDetails && rolUsuario === 'Administrador'" class="accordion-content">
-        <section 
-          v-for="(dept, dIndex) in visibleDepartments" 
-          :key="dept.id" 
-          class="dashboard-section dept-section animate-fade-in"
-        >
-          <div class="section-header">
-            <div class="dept-badge">Departamento</div>
-            <h2>{{ dept.name }}</h2>
-          </div>
-          <div class="statistics-grid">
-            <Card
-              v-for="(stat, index) in dept.stats"
-              :key="stat.title"
-              type="stats"
-              v-bind="stat"
-              :animate="true"
-            />
-          </div>
-        </section>
+    <!-- 2. Plan de Inversión Summary -->
+    <section class="dashboard-section animate-fade-in" style="animation-delay: 0.3s">
+      <div class="section-header">
+        <span class="material-symbols-outlined">trending_up</span>
+        <h2>Planes de Inversión</h2>
       </div>
-    </transition>
+      <div class="statistics-grid">
+        <Card
+          type="stats"
+          title="Inversión Prevista"
+          :data="statsByType.planInversion.total"
+          suffix="€"
+          icon="rocket_launch"
+          background="linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)"
+        />
+        <Card
+          type="stats"
+          title="Inversión Ejecutada"
+          :data="statsByType.planInversion.spent"
+          suffix="€"
+          icon="task_alt"
+          background="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+        />
+        <Card
+          type="stats"
+          title="Pendiente"
+          :data="statsByType.planInversion.remaining"
+          suffix="€"
+          icon="hourglass_empty"
+          background="linear-gradient(135deg, #64748b 0%, #475569 100%)"
+        />
+      </div>
+    </section>
 
     <!-- 4. Permanent Intel (Orders Table - Now Outside) -->
     <section class="dashboard-section animate-fade-in" style="animation-delay: 0.6s">
@@ -185,12 +199,9 @@ const orderData = computed(() => {
           <div class="spinner"></div>
           <p>Sincronizando registros...</p>
         </div>
-        <Table
+        <OrderTable
           v-else
-          :headers="orderHeaders"
-          :data="orderData"
-          :searchable="true"
-          :statusColumn="6"
+          :orders="filteredOrdersTable"
         />
       </div>
     </section>
@@ -198,42 +209,26 @@ const orderData = computed(() => {
 </template>
 
 <style scoped>
-/* Accordion Animation */
-.accordion-enter-active,
-.accordion-leave-active {
-  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
-  max-height: 2000px;
-}
-
-.accordion-enter-from,
-.accordion-leave-to {
-  max-height: 0;
-  opacity: 0;
-  transform: translateY(-20px);
-}
-
 .dashboard-page {
-  padding: 2rem;
+  padding: 2.5rem;
   max-width: 1600px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 3rem;
 }
 
 .dashboard-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
 }
 
 .header-content h1 {
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 850;
-  letter-spacing: -0.025em;
-  background: linear-gradient(135deg, #1e293b 0%, #64748b 100%);
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 0.5rem;
@@ -241,112 +236,111 @@ const orderData = computed(() => {
 
 .subtitle {
   color: #64748b;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 500;
 }
 
+.dept-selector {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.5rem;
+  margin: -1rem 0;
+  scrollbar-width: none;
+}
+
+.dept-selector::-webkit-scrollbar {
+  display: none;
+}
+
+.dept-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 100px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.dept-btn:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  color: #1e293b;
+}
+
+.dept-btn.active {
+  background: #0f172a;
+  color: white;
+  border-color: #0f172a;
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.2);
+}
+
 .btn-primary {
-  background: #3b82f6;
+  background: #0f172a;
   color: white;
   padding: 0.875rem 1.75rem;
-  border-radius: 14px;
+  border-radius: 16px;
   font-weight: 700;
   border: none;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transition: all 0.3s;
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary:hover {
-  background: #2563eb;
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 12px 20px rgba(59, 130, 246, 0.4);
-}
-
-.show-more-container {
-  display: flex;
-  justify-content: center;
-  margin-top: -0.5rem;
-  margin-bottom: 1rem;
-}
-
-.btn-secondary {
-  background: rgba(241, 245, 249, 0.8);
-  backdrop-filter: blur(8px);
-  color: #475569;
-  padding: 0.75rem 2rem;
-  border-radius: 12px;
-  font-weight: 700;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.95rem;
-}
-
-.btn-secondary:hover {
-  background: #f1f5f9;
-  color: #1e293b;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+  background: #1e293b;
 }
 
 .dashboard-section {
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 2rem;
 }
 
 .section-header {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .section-header .material-symbols-outlined {
-  color: #3b82f6;
-  font-size: 1.75rem;
-  padding: 0.5rem;
-  background: rgba(59, 130, 246, 0.1);
-  border-radius: 12px;
+  color: #0f172a;
+  font-size: 2rem;
+  padding: 0.625rem;
+  background: #f1f5f9;
+  border-radius: 14px;
 }
 
 .section-header h2 {
-  font-size: 1.625rem;
-  font-weight: 800;
+  font-size: 1.75rem;
+  font-weight: 850;
   color: #0f172a;
-  letter-spacing: -0.0125em;
-}
-
-.dept-badge {
-  background: #f1f5f9;
-  color: #64748b;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
+  letter-spacing: -0.02em;
 }
 
 .statistics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.75rem;
-  width: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 2rem;
 }
 
 .table-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 24px;
-  padding: 1.75rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  background: white;
+  border: 1px solid #f1f5f9;
+  border-radius: 28px;
+  padding: 2rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.035);
   position: relative;
   min-height: 400px;
 }
@@ -357,41 +351,36 @@ const orderData = computed(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.8);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 10;
-  border-radius: 24px;
+  border-radius: 28px;
+  backdrop-filter: blur(4px);
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3b82f6;
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f1f5f9;
+  border-top: 4px solid #0f172a;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.dept-section {
-  padding-top: 1.5rem;
-  border-top: 2px solid #f1f5f9;
+  to { transform: rotate(360deg); }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(30px); }
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 </style>

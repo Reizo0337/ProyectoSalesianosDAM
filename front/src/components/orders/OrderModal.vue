@@ -72,6 +72,18 @@ onMounted(async () => {
   }
 });
 
+watch(() => form.idPresupuesto, (newId) => {
+  if (!newId) return;
+  const budget = presupuestoStore.presupuestos.find(p => p.idpresupuesto.toString() === newId.toString());
+  if (budget) {
+    if (budget.type === 'planInversion') {
+      form.typeCode = '0'; // Invariable/Inversion
+    } else {
+      form.typeCode = '1'; // Fungible
+    }
+  }
+});
+
 function addProduct() {
   form.products.push({ idProducto: '', precio: '' });
 }
@@ -127,6 +139,12 @@ async function submitOrder() {
     
     const res = await orderStore.createOrder(finalOrderData);
     if (res.status === 'success') {
+      const orderId = res.orderId;
+      if (form.invoices.length > 0) {
+        for (const file of form.invoices) {
+           await orderStore.uploadInvoice(orderId, file);
+        }
+      }
       emit('success');
       emit('close');
     }
@@ -165,7 +183,7 @@ function prevStep() {
             <select v-model="form.idPresupuesto" class="form-input">
               <option value="">Seleccionar presupuesto...</option>
               <option v-for="p in presupuestoStore.presupuestos" :key="p.idpresupuesto" :value="p.idpresupuesto">
-                {{ p.codigo }} - {{ p.nombrepresupuesto }} ({{ p.nombredepartamento }})
+                {{ p.codigo }} - {{ p.nombrepresupuesto }} [{{ p.type || 'P' }}] ({{ p.nombredepartamento }})
               </option>
             </select>
           </div>

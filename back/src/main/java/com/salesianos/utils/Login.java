@@ -18,8 +18,7 @@ public class Login {
             throw new IllegalArgumentException("Email and password cannot be null");
         }
 
-        // Updated query based on user requirement: Nombre, correo, rol, idDepartamento
-        // Added WHERE clause and proper aliases to facilitate mapping
+        // Nombre, correo, rol, idDepartamento
         String sql = "SELECT u.Nombre as usuario_nombre, u.correo, r.Nombre as rol_nombre, d.Nombre as dep_nombre, d.Codigo as dep_codigo " +
                      "FROM usuario u " +
                      "LEFT JOIN roles r ON u.idRol = r.idRol " +
@@ -29,7 +28,6 @@ public class Login {
         System.out.println("Login attempt: " + correo + " / " + password);
         try (Connection conn = DatabaseManager.getConnection("webapp");
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setString(1, correo);
             stmt.setString(2, password);
 

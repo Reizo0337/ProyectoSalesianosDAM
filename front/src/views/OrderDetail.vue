@@ -2,12 +2,23 @@
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useOrderStore } from '@/stores/orders';
+import PdfPreview from '../components/orders/PdfPreview.vue';
 
 const route = useRoute();
 const router = useRouter();
 const orderStore = useOrderStore();
 const detail = ref<any>(null);
 const loading = ref(true);
+const previewUrl = ref<string | null>(null);
+
+function openPreview(id: string | number) {
+  // Use absolute backend path
+  previewUrl.value = `http://localhost:8080/backend/api/facturas/view?id=${id}`;
+}
+
+function closePreview() {
+  previewUrl.value = null;
+}
 
 onMounted(async () => {
   const id = route.params.id as string;
@@ -41,8 +52,8 @@ function goBack() {
       <div class="detail-header">
         <div class="header-left">
           <h1>Orden {{ detail.order.numero_orden }}</h1>
-          <span class="status-badge" :class="'status-' + (detail.order.Estado || 'pendiente').toLowerCase()">
-            {{ detail.order.Estado }}
+          <span class="status-badge" :class="'status-' + (detail.order.estado || 'pendiente').toLowerCase()">
+            {{ detail.order.estado }}
           </span>
         </div>
         <div class="header-right">
@@ -52,7 +63,7 @@ function goBack() {
           </div>
           <div class="meta-item">
             <span class="meta-label">Fecha</span>
-            <span class="meta-value">{{ detail.order.fechaCreacion }}</span>
+            <span class="meta-value">{{ detail.order.fechacreacion }}</span>
           </div>
         </div>
       </div>
@@ -61,11 +72,11 @@ function goBack() {
       <div class="info-grid">
         <div class="info-card">
           <span class="info-label">Importe Total</span>
-          <span class="info-value price">{{ detail.order.Cantidad }}€</span>
+          <span class="info-value price">{{ detail.order.cantidad }}€</span>
         </div>
         <div class="info-card">
           <span class="info-label">Tipo</span>
-          <span class="info-value">{{ detail.order.Tipo }}</span>
+          <span class="info-value">{{ detail.order.tipo }}</span>
         </div>
         <div class="info-card">
           <span class="info-label">Nº Plan</span>
@@ -73,14 +84,14 @@ function goBack() {
         </div>
         <div class="info-card">
           <span class="info-label">Presupuesto</span>
-          <span class="info-value">{{ detail.order.presupuesto_codigo }}</span>
+          <span class="info-value">{{ detail.order.presupuesto_codigo }} [{{ detail.order.presupuesto_tipo || 'P' }}]</span>
         </div>
       </div>
 
       <!-- Observaciones -->
-      <div v-if="detail.order.Observaciones" class="section-card">
+      <div v-if="detail.order.observaciones" class="section-card">
         <h2>Observaciones</h2>
-        <p class="observations-text">{{ detail.order.Observaciones }}</p>
+        <p class="observations-text">{{ detail.order.observaciones }}</p>
       </div>
 
       <!-- Productos -->
@@ -116,22 +127,37 @@ function goBack() {
       <div class="section-card">
         <h2>Facturas</h2>
         <div v-if="detail.facturas && detail.facturas.length > 0" class="facturas-list">
-          <div v-for="fac in detail.facturas" :key="fac.idFactura" class="factura-item">
+          <div v-for="fac in detail.facturas" :key="fac.idfactura" 
+               class="factura-item clickable" @click="openPreview(fac.idfactura)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
               <polyline points="14 2 14 8 20 8" />
             </svg>
             <div class="factura-info">
-              <span class="factura-name">Factura #{{ fac.idFactura }}</span>
-              <span class="factura-date">{{ fac.fechaCreacion }}</span>
+              <span class="factura-name">Factura #{{ fac.idfactura }}</span>
+              <span class="factura-date">{{ fac.fechacreacion }}</span>
             </div>
+            <span class="view-hint">Ver PDF</span>
           </div>
         </div>
         <p v-else class="empty-text">No hay facturas adjuntas.</p>
       </div>
     </div>
 
-    <div v-else class="error-state">
+    <!-- PDF Preview Overlay -->
+    <div v-if="previewUrl" class="preview-overlay" @click.self="closePreview">
+      <div class="preview-modal">
+        <div class="preview-header">
+          <h3>Vista Previa: Factura</h3>
+          <button class="close-modal-btn" @click="closePreview">&times;</button>
+        </div>
+        <div class="preview-body">
+          <PdfPreview :pdfUrl="previewUrl" />
+        </div>
+      </div>
+    </div>
+
+    <div v-else-if="!loading" class="error-state">
       <p>No se pudo cargar el detalle de la orden.</p>
     </div>
   </div>
@@ -265,6 +291,68 @@ function goBack() {
 .factura-info { display: flex; flex-direction: column; }
 .factura-name { font-size: 14px; font-weight: 600; color: #1f2937; }
 .factura-date { font-size: 12px; color: #9ca3af; }
+
+.factura-item.clickable { cursor: pointer; }
+.factura-item.clickable:hover { background: #fef2f2; border-color: #fecaca; }
+.factura-item.clickable:hover svg { transform: scale(1.1); transition: transform 0.2s; }
+
+.view-hint {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.factura-item:hover .view-hint { opacity: 1; }
+
+/* Preview Overlay Styles */
+.preview-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.preview-modal {
+  background: white;
+  width: 100%;
+  max-width: 1000px;
+  height: 90vh;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.preview-header {
+  padding: 16px 24px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.preview-header h3 { font-size: 16px; font-weight: 700; color: #1f2937; margin: 0; }
+.close-modal-btn {
+  background: none; border: none; font-size: 32px; color: #9ca3af;
+  cursor: pointer; line-height: 1; transition: color 0.2s;
+}
+.close-modal-btn:hover { color: #dc2626; }
+
+.preview-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background: #525659;
+}
 
 .empty-text { color: #9ca3af; font-size: 14px; margin: 0; }
 .loading-state, .error-state { text-align: center; padding: 64px; color: #9ca3af; }

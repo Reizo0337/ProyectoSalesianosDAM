@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useOrderStore } from '@/stores/orders';
 import OrderModal from '../components/orders/OrderModal.vue';
+import OrderTable from '../components/orders/OrderTable.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -11,7 +12,7 @@ const orderStore = useOrderStore();
 
 const showModal = ref(false);
 const searchQuery = ref('');
-const headers = ['Nº Orden', 'Cantidad', 'Estado', 'Factura'];
+const headers = ['Nº Orden', 'Fecha', 'Cantidad', 'Estado', 'Factura'];
 
 const canCreate = computed(() => {
   return authStore.user?.rol === 'Administrador' || authStore.user?.rol === 'Jefe de Equipo';
@@ -22,14 +23,13 @@ const filteredOrders = computed(() => {
   const q = searchQuery.value.toLowerCase();
   return orderStore.orders.filter(o =>
     (o.numero_orden || '').toLowerCase().includes(q) ||
-    (o.Estado || '').toLowerCase().includes(q) ||
-    String(o.Cantidad).includes(q)
+    (o.numero_plan || '').toLowerCase().includes(q) ||
+    (o.estado || '').toLowerCase().includes(q) ||
+    String(o.cantidad).includes(q)
   );
 });
 
-function goToDetail(orderId: number) {
-  router.push(`/ordenes/${orderId}`);
-}
+
 
 async function refreshOrders() {
   const dept = authStore.user?.rol === 'Administrador' ? 'Admin' : authStore.user?.idDepartamento;
@@ -70,34 +70,7 @@ onMounted(async () => {
           </div>
         </div>
         <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th v-for="h in headers" :key="h">{{ h }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="order in filteredOrders"
-                :key="order.idOrden"
-                class="table-row clickable"
-                @click="goToDetail(order.idOrden)"
-              >
-                <td><span class="cell-order-num">{{ order.numero_orden || '-' }}</span></td>
-                <td><span class="cell-price">{{ order.Cantidad }}€</span></td>
-                <td>
-                  <span class="status-badge" :class="'status-' + (order.Estado || 'pendiente').toLowerCase()">
-                    {{ order.Estado }}
-                  </span>
-                </td>
-                <td>
-                  <span class="factura-badge" :class="parseInt(order.numFacturas || '0') > 0 ? 'has-factura' : 'no-factura'">
-                    {{ parseInt(order.numFacturas || '0') > 0 ? 'Si' : 'No' }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <OrderTable :orders="filteredOrders" />
         </div>
       </div>
       <div v-else-if="orderStore.loading" class="loading-state">
@@ -151,22 +124,6 @@ onMounted(async () => {
 .result-count { font-size: 13px; color: #9ca3af; }
 .result-count span { font-weight: 600; color: #6b7280; }
 .table-scroll { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; }
-thead { background: linear-gradient(180deg, #f9fafb, #f3f4f6); }
-th { padding: 14px 20px; text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #e5e7eb; }
-td { padding: 16px 20px; font-size: 14px; color: #374151; }
-.table-row { transition: background-color 0.18s; }
-.table-row:not(:last-child) td { border-bottom: 1px solid #f3f4f6; }
-.table-row.clickable { cursor: pointer; }
-.table-row.clickable:hover { background-color: #fef2f2; }
-.cell-order-num { font-weight: 700; font-size: 13px; color: #dc2626; background: #fef2f2; padding: 4px 10px; border-radius: 6px; }
-.cell-price { font-weight: 600; color: #1f2937; font-variant-numeric: tabular-nums; }
-.status-badge { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
-.status-pendiente { background: #fef9c3; color: #ca8a04; }
-.status-aprobado { background: #dcfce7; color: #16a34a; }
-.status-rechazado { background: #fee2e2; color: #dc2626; }
-.factura-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-.has-factura { background: #dcfce7; color: #16a34a; }
-.no-factura { background: #f3f4f6; color: #9ca3af; }
+
 .empty-state, .loading-state { text-align: center; padding: 48px; color: #9ca3af; }
 </style>

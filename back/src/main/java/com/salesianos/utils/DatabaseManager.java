@@ -13,7 +13,7 @@ public class DatabaseManager {
 
     private static final Logger LOGGER = Logger.getLogger(DatabaseManager.class.getName());
     private static Properties properties = new Properties();
-
+    
     static {
         try (InputStream input = DatabaseManager.class.getClassLoader()
                  .getResourceAsStream("db.properties")) {

@@ -25,17 +25,6 @@ async function handleLogout() {
       <img src="/img/logoPrincipal.jpg" alt="Salesianos Logo" class="logo-img" />
     </div>
 
-    <!-- Search bar (center) -->
-    <div class="header-search">
-      <div class="search-wrapper">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.35-4.35" />
-        </svg>
-        <input type="text" placeholder="Buscar productos, facturas..." class="search-input" />
-      </div>
-    </div>
-
     <!-- Right actions -->
     <div class="header-actions">
       <!-- Notifications -->

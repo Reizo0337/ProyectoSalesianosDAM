@@ -7,7 +7,7 @@ import Table from '../components/common/Table.vue';
 const authStore = useAuthStore();
 const presupuestoStore = usePresupuestoStore();
 
-const headers = ['ID', 'Código', 'Nombre', 'Cantidad', 'Gasto', 'Departamento', 'Acciones'];
+const headers = ['ID', 'Código', 'Nombre', 'Tipo', 'Cantidad', 'Gasto', 'Departamento', 'Acciones'];
 
 onMounted(async () => {
   if (authStore.user?.rol === 'Administrador') {
@@ -33,6 +33,7 @@ onMounted(async () => {
           p.idpresupuesto,
           p.codigo,
           p.nombrepresupuesto,
+          p.type || 'Presupuesto',
           p.cantidad + '€',
           p.gasto + '€',
           p.nombredepartamento

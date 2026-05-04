@@ -8,6 +8,7 @@ interface Presupuesto {
     idPresupuesto: number;
     nombreDepartamento: string;
     Codigo: string;
+    type: string;
 }
 
 export const usePresupuestoStore = defineStore('presupuesto', {

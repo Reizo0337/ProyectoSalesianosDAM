@@ -14,6 +14,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -21,7 +24,17 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import jakarta.servlet.annotation.MultipartConfig;
+import jakarta.servlet.http.Part;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+
 @WebServlet(name = "ApiMain", urlPatterns = {"/api/*"})
+@MultipartConfig(
+    fileSizeThreshold = 1024 * 1024 * 2, // 2MB
+    maxFileSize = 1024 * 1024 * 10,      // 10MB
+    maxRequestSize = 1024 * 1024 * 50   // 50MB
+)
 public class ApiServlet extends HttpServlet {
 
     private static final Logger LOGGER = Logger.getLogger(ApiServlet.class.getName());
@@ -39,13 +52,13 @@ public class ApiServlet extends HttpServlet {
     }
 
     private void handleRequest(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-
         String path = request.getPathInfo();
         if (path == null) path = "/";
         
         LOGGER.log(Level.INFO, "API Request received: {0} {1}", new Object[]{request.getMethod(), path});
+
+        // Set default encoding, but defer content type
+        response.setCharacterEncoding("UTF-8");
 
         String jsonResponse = "";
         HttpSession session = request.getSession(false);
@@ -105,6 +118,17 @@ public class ApiServlet extends HttpServlet {
                     }
                     break;
 
+                case "/ordenes/upload-invoice":
+                    if (!isAuth) returnAuthError(response);
+                    else jsonResponse = handleFileUpload(request);
+                    break;
+
+                case "/facturas/view":
+                    // No jsonResponse here, we write bytes directly
+                    if (!isAuth) returnAuthError(response);
+                    else handleViewFactura(request, response);
+                    return;
+
                 case "/proveedores":
                     if (!isAuth) returnAuthError(response);
                     else jsonResponse = handleSuppliers(request, response);
@@ -134,7 +158,71 @@ public class ApiServlet extends HttpServlet {
         }
 
         if (jsonResponse != null && !jsonResponse.isEmpty()) {
+            response.setContentType("application/json");
             response.getWriter().write(jsonResponse);
+        }
+    }
+
+    private void handleViewFactura(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String idParam = request.getParameter("id");
+        if (idParam == null) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Falta el ID de la factura");
+            return;
+        }
+
+        String sql = "SELECT blobFactura FROM facturas WHERE idFactura = ?";
+        try (java.sql.Connection conn = com.salesianos.utils.DatabaseManager.getConnection("webapp");
+             java.sql.PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, Integer.parseInt(idParam));
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    byte[] pdfData = rs.getBytes("blobFactura");
+                    if (pdfData != null) {
+                        response.setContentType("application/pdf");
+                        response.setContentLength(pdfData.length);
+                        response.getOutputStream().write(pdfData);
+                    } else {
+                        response.sendError(HttpServletResponse.SC_NOT_FOUND, "Blob vacío");
+                    }
+                } else {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND, "Factura no encontrada");
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error serving PDF", e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    private String handleFileUpload(HttpServletRequest request) {
+        try {
+            String idParam = request.getParameter("id");
+            Part filePart = request.getPart("file");
+            if (idParam != null && filePart != null) {
+                long orderId = Long.parseLong(idParam);
+                byte[] data = readPartBytes(filePart);
+                Orders util = new Orders();
+                util.addInvoice(orderId, data);
+                // asfasf
+                return JsonUtil.messageJson("Factura subida correctamente");
+            }
+            return JsonUtil.errorJson("Faltan parámetros id o archivo");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error uploading file", e);
+            return JsonUtil.errorJson("Error al subir archivo: " + e.getMessage());
+        }
+    }
+
+    private byte[] readPartBytes(Part part) throws IOException {
+        try (InputStream is = part.getInputStream();
+             ByteArrayOutputStream os = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[4096];
+            int n;
+            while ((n = is.read(buffer)) != -1) {
+                os.write(buffer, 0, n);
+            }
+            return os.toByteArray();
         }
     }
 
