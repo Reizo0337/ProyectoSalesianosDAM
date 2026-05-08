@@ -17,6 +17,8 @@ const props = defineProps<{
 
 const router = useRouter();
 
+const emit = defineEmits(['edit']);
+
 function goToDetail(orderId: number) {
   router.push(`/ordenes/${orderId}`);
 }
@@ -90,4 +92,23 @@ td { padding: 16px 20px; font-size: 14px; color: #374151; }
 .factura-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
 .has-factura { background: #dcfce7; color: #16a34a; }
 .no-factura { background: #f3f4f6; color: #9ca3af; }
+
+.edit-icon-btn {
+  background: none;
+  border: none;
+  color: #dc2626;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-icon-btn:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+  transform: scale(1.1);
+}
 </style>

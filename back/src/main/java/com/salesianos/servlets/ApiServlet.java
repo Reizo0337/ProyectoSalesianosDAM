@@ -94,6 +94,11 @@ public class ApiServlet extends HttpServlet {
                     else jsonResponse = handleAllOrders(request, response);
                     break;
 
+                case "/ordenes/update":
+                    if (!isAuth) returnAuthError(response);
+                    else jsonResponse = handleOrderUpdate(request, response, session);
+                    break;
+
                 case "/ordenes/next-number":
                     if (!isAuth) returnAuthError(response);
                     else {
@@ -609,5 +614,22 @@ public class ApiServlet extends HttpServlet {
             return ok ? JsonUtil.messageJson("Notificación marcada como leída") : JsonUtil.errorJson("Error");
         }
         return JsonUtil.errorJson("Falta idNotificacion");
+    }
+
+    private String handleOrderUpdate(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws IOException {
+        String body = JsonUtil.getRequestBody(request);
+        String idStr = JsonUtil.findJsonField(body, "id");
+        if (idStr == null) return JsonUtil.errorJson("Falta ID de la orden");
+        
+        Map<String, String> data = new HashMap<>();
+        data.put("Cantidad", JsonUtil.findJsonField(body, "cantidad"));
+        data.put("numero_plan", JsonUtil.findJsonField(body, "numero_plan"));
+        data.put("Tipo", JsonUtil.findJsonField(body, "tipo"));
+        data.put("Inversion", JsonUtil.findJsonField(body, "inversion"));
+        data.put("descripcion", JsonUtil.findJsonField(body, "descripcion"));
+        data.put("idPresupuesto", JsonUtil.findJsonField(body, "idPresupuesto"));
+
+        Orders util = new Orders();
+        return util.updateOrder(Integer.parseInt(idStr), data);
     }
 }

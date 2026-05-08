@@ -131,6 +131,19 @@ export const useOrderStore = defineStore('order', {
             return '001';
         },
 
+        async updateOrder(id: number | string, orderData: any) {
+            this.loading = true;
+            try {
+                const response = await api.post('/ordenes/update', { id, ...orderData });
+                return response.data;
+            } catch (err) {
+                console.error('Error updating order:', err);
+                throw err;
+            } finally {
+                this.loading = false;
+            }
+        },
+
         async createOrder(orderData: any) {
             this.loading = true;
             try {

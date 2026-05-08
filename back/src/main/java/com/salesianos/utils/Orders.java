@@ -147,6 +147,7 @@ public class Orders {
                         json.append("\"descripcion\":\"").append(esc(rs.getString("descripcion"))).append("\",");
                         json.append("\"estado\":\"").append(esc(rs.getString("Estado"))).append("\",");
                         json.append("\"fechacreacion\":\"").append(esc(rs.getString("fechaCreacion"))).append("\",");
+                        json.append("\"idpresupuesto\":\"").append(rs.getInt("idPresupuesto")).append("\",");
                         json.append("\"presupuesto_codigo\":\"").append(esc(rs.getString("presupuesto_codigo"))).append("\",");
                         json.append("\"presupuesto_nombre\":\"").append(esc(rs.getString("presupuesto_nombre"))).append("\",");
                         json.append("\"presupuesto_tipo\":\"").append(esc(rs.getString("presupuesto_tipo"))).append("\",");
@@ -274,6 +275,12 @@ public class Orders {
                     }
                 }
             }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error creating order", e);
+        }
+        return -1;
+    }
+
     public String updateOrder(int id, Map<String, String> data) {
         // We need to check if the status is "Aprobada" to adjust budget gasto if amount changes
         String sqlCheck = "SELECT Cantidad, Estado, idPresupuesto FROM ordencompra WHERE idOrden = ?";
@@ -293,7 +300,7 @@ public class Orders {
                 }
             }
 
-            String sql = "UPDATE ordencompra SET Cantidad=?, numero_plan=?, Tipo=?, Inversion=?, descripcion=? WHERE idOrden=?";
+            String sql = "UPDATE ordencompra SET Cantidad=?, numero_plan=?, Tipo=?, Inversion=?, descripcion=?, idPresupuesto=? WHERE idOrden=?";
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 double newAmount = Double.parseDouble(data.get("Cantidad"));
                 stmt.setDouble(1, newAmount);
@@ -301,7 +308,8 @@ public class Orders {
                 stmt.setString(3, data.get("Tipo"));
                 stmt.setBoolean(4, "true".equalsIgnoreCase(data.get("Inversion")) || "1".equals(data.get("Inversion")));
                 stmt.setString(5, data.get("descripcion"));
-                stmt.setInt(6, id);
+                stmt.setInt(6, Integer.parseInt(data.get("idPresupuesto")));
+                stmt.setInt(7, id);
 
                 int rows = stmt.executeUpdate();
                 if (rows > 0) {

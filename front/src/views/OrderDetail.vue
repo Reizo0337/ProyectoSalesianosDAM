@@ -4,12 +4,14 @@ import { useRoute, useRouter } from 'vue-router';
 import { useOrderStore } from '@/stores/orders';
 import { useAuthStore } from '@/stores/auth';
 import PdfPreview from '../components/orders/PdfPreview.vue';
-
+import { usePresupuestoStore } from '@/stores/presupuesto';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const orderStore = useOrderStore();
+const presupuestoStore = usePresupuestoStore();
+
 const detail = ref<any>(null);
 const loading = ref(true);
 const previewUrl = ref<string | null>(null);
@@ -18,9 +20,62 @@ const comments = ref<any[]>([]);
 const newComment = ref('');
 const sendingComment = ref(false);
 
-const canEditDescription = computed(() => {
+const isEditing = ref(false);
+const editForm = ref({
+  cantidad: '',
+  tipo: '',
+  numero_plan: '',
+  idPresupuesto: '',
+  descripcion: '',
+  inversion: false
+});
+
+function toggleEdit() {
+  if (!isEditing.value && detail.value) {
+    editForm.value = {
+      cantidad: detail.value.order.cantidad,
+      tipo: detail.value.order.tipo,
+      numero_plan: detail.value.order.numero_plan || '',
+      idPresupuesto: detail.value.order.idpresupuesto.toString(),
+      descripcion: detail.value.order.descripcion || '',
+      inversion: detail.value.order.inversion === 'true' || detail.value.order.inversion === true
+    };
+  }
+  isEditing.value = !isEditing.value;
+}
+
+async function handleUpdate() {
+  try {
+    const res = await orderStore.updateOrder(detail.value.order.idorden, editForm.value);
+    if (res.status === 'success') {
+      isEditing.value = false;
+      // Refresh data
+      const id = route.params.id as string;
+      const updatedData = await orderStore.fetchOrderDetail(id);
+      if (updatedData) {
+        detail.value = updatedData;
+        description.value = updatedData.order.descripcion || '';
+      }
+    }
+  } catch (err) {
+    alert('Error al actualizar la orden');
+  }
+}
+
+const canEdit = computed(() => {
+  const user = authStore.user;
+  if (!user || !detail.value) return false;
+  
+  if (user.rol === 'Administrador') return true;
+  if (user.rol === 'Jefe de Equipo') {
+    return user.idDepartamento === detail.value.order.dep_nombre;
+  }
+  return false;
+});
+
+const canComment = computed(() => {
   const rol = authStore.user?.rol;
-  return rol === 'Administrador' || rol === 'Contable';
+  return rol === 'Administrador' || rol === 'Contable' || rol === 'Jefe de Equipo';
 });
 
 function openPreview(id: string | number) {
@@ -29,18 +84,6 @@ function openPreview(id: string | number) {
 
 function closePreview() {
   previewUrl.value = null;
-}
-
-async function saveDescription() {
-  try {
-    const res = await orderStore.updateDescription(detail.value.order.idorden, description.value);
-    if (res.status === 'success') {
-      detail.value.order.descripcion = description.value;
-      alert('Descripción actualizada');
-    }
-  } catch (err) {
-    alert('Error al guardar la descripción');
-  }
 }
 
 async function fetchComments() {
@@ -72,6 +115,7 @@ onMounted(async () => {
     detail.value = data;
     description.value = data.order.descripcion || '';
     await fetchComments();
+    await presupuestoStore.getAllPresupuestos();
   }
   loading.value = false;
 });
@@ -125,11 +169,29 @@ async function downloadFactura(id: string | number) {
       <div class="detail-header">
         <div class="header-left">
           <h1>Orden {{ detail.order.numero_orden }}</h1>
+          <div class="description-area">
+             <p v-if="!isEditing" class="header-desc">{{ detail.order.descripcion || 'Sin descripción' }}</p>
+             <input v-else v-model="editForm.descripcion" class="edit-desc-input" placeholder="Descripción de la orden..." />
+          </div>
           <span class="status-badge" :class="'status-' + (detail.order.estado || 'pendiente').toLowerCase()">
             {{ detail.order.estado }}
           </span>
         </div>
         <div class="header-right">
+          <div v-if="canEdit && !isEditing" class="header-actions-inline">
+             <button class="edit-info-btn" @click="toggleEdit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Editar Información
+             </button>
+          </div>
+          <div v-else-if="canEdit && isEditing" class="header-actions-inline">
+             <button class="cancel-btn-inline" @click="isEditing = false">Cancelar</button>
+             <button class="save-btn-inline" @click="handleUpdate">Guardar Cambios</button>
+          </div>
+
           <div class="meta-item">
             <span class="meta-label">Departamento</span>
             <span class="meta-value">{{ detail.order.dep_nombre }} ({{ detail.order.dep_codigo }})</span>
@@ -145,34 +207,68 @@ async function downloadFactura(id: string | number) {
       <div class="info-grid">
         <div class="info-card">
           <span class="info-label">Importe Total</span>
-          <span class="info-value price">{{ detail.order.cantidad }}€</span>
+          <span v-if="!isEditing" class="info-value price">{{ detail.order.cantidad }}€</span>
+          <div v-else class="edit-input-group">
+             <input v-model="editForm.cantidad" type="number" step="0.01" class="edit-input" />
+             <span class="currency">€</span>
+          </div>
         </div>
         <div class="info-card">
           <span class="info-label">Tipo</span>
-          <span class="info-value">{{ detail.order.tipo }}</span>
+          <span v-if="!isEditing" class="info-value">{{ detail.order.tipo }}</span>
+          <select v-else v-model="editForm.tipo" class="edit-select">
+             <option value="Fungible">Fungible</option>
+             <option value="Invariable">Invariable</option>
+          </select>
         </div>
         <div class="info-card">
           <span class="info-label">Nº Plan</span>
-          <span class="info-value">{{ detail.order.numero_plan || 'N/A' }}</span>
+          <span v-if="!isEditing" class="info-value">{{ detail.order.numero_plan || 'N/A' }}</span>
+          <input v-else v-model="editForm.numero_plan" type="text" class="edit-input" maxlength="7" placeholder="Ej: 1234567" />
         </div>
         <div class="info-card">
           <span class="info-label">Presupuesto</span>
-          <span class="info-value">{{ detail.order.presupuesto_codigo }} [{{ formatType(detail.order.presupuesto_tipo) }}]</span>
+          <span v-if="!isEditing" class="info-value">{{ detail.order.presupuesto_codigo }} [{{ formatType(detail.order.presupuesto_tipo) }}]</span>
+          <select v-else v-model="editForm.idPresupuesto" class="edit-select">
+             <option v-for="p in presupuestoStore.presupuestos.filter(b => b.nombreDepartamento === detail.order.dep_nombre)" :key="p.idPresupuesto" :value="p.idPresupuesto.toString()">
+                {{ p.Codigo }} [{{ formatType(p.type) }}]
+             </option>
+          </select>
         </div>
       </div>
 
-      <!-- Descripción -->
-      <div class="section-card">
-        <h2>Descripción de la Orden</h2>
-        <div v-if="canEditDescription" class="edit-obs-box">
-          <textarea 
-            v-model="description" 
-            class="obs-textarea" 
-            placeholder="Añadir descripción o detalles sobre la orden..."
-          ></textarea>
-          <button class="save-obs-btn" @click="saveDescription">Guardar Descripción</button>
+      <!-- Sistema de Observaciones (Comentarios) -->
+      <div class="section-card observations-section">
+        <h2>Observaciones de la Orden</h2>
+        <div class="comments-list">
+          <div v-if="comments.length === 0" class="empty-comments">
+            <p>No hay observaciones registradas.</p>
+          </div>
+          <div v-for="comment in comments" :key="comment.idComentario" class="comment-bubble">
+            <div class="comment-header">
+              <span class="comment-user">{{ comment.usuario }}</span>
+              <span class="comment-date">{{ comment.fecha }}</span>
+            </div>
+            <div class="comment-text">{{ comment.comentario }}</div>
+          </div>
         </div>
-        <p v-else class="observations-text">{{ detail.order.descripcion || 'Sin descripción' }}</p>
+
+        <div v-if="canComment" class="add-comment-box">
+          <input 
+            v-model="newComment" 
+            type="text" 
+            placeholder="Añadir una observación..." 
+            @keyup.enter="postComment"
+            :disabled="sendingComment"
+          />
+          <button @click="postComment" :disabled="sendingComment || !newComment.trim()" class="send-btn">
+            <svg v-if="!sendingComment" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            <span v-else class="loader-mini"></span>
+          </button>
+        </div>
       </div>
 
       <!-- Productos -->
@@ -230,39 +326,6 @@ async function downloadFactura(id: string | number) {
         <p v-else class="empty-text">No hay facturas adjuntas.</p>
       </div>
 
-      <!-- Sistema de Comentarios -->
-      <div class="section-card comments-section">
-        <h2>Hilo de Comentarios</h2>
-        <div class="comments-list">
-          <div v-if="comments.length === 0" class="empty-comments">
-            <p>No hay comentarios aún. Sé el primero en escribir.</p>
-          </div>
-          <div v-for="comment in comments" :key="comment.idComentario" class="comment-bubble">
-            <div class="comment-header">
-              <span class="comment-user">{{ comment.usuario }}</span>
-              <span class="comment-date">{{ comment.fecha }}</span>
-            </div>
-            <div class="comment-text">{{ comment.comentario }}</div>
-          </div>
-        </div>
-
-        <div class="add-comment-box">
-          <input 
-            v-model="newComment" 
-            type="text" 
-            placeholder="Escribe un comentario..." 
-            @keyup.enter="postComment"
-            :disabled="sendingComment"
-          />
-          <button @click="postComment" :disabled="sendingComment || !newComment.trim()" class="send-btn">
-            <svg v-if="!sendingComment" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-            <span v-else class="loader-mini"></span>
-          </button>
-        </div>
-      </div>
     </div>
 
     <div v-else-if="!loading" class="error-state">
@@ -706,5 +769,129 @@ async function downloadFactura(id: string | number) {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.description-area {
+  margin-bottom: 12px;
+}
+
+.header-desc {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+  font-style: italic;
+}
+
+.edit-desc-input {
+  width: 100%;
+  padding: 6px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #374151;
+  outline: none;
+}
+
+.edit-desc-input:focus {
+  border-color: #dc2626;
+}
+
+.header-actions-inline {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-right: 24px;
+}
+
+.edit-info-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  padding: 8px 14px;
+  border-radius: 10px;
+  color: #475569;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-info-btn:hover {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: #fff1f2;
+}
+
+.save-btn-inline {
+  background: #16a34a;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.save-btn-inline:hover {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+
+.cancel-btn-inline {
+  background: #f1f5f9;
+  color: #64748b;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-input-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  outline: none;
+}
+
+.edit-input:focus {
+  border-color: #dc2626;
+}
+
+.edit-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  outline: none;
+  background: white;
+}
+
+.edit-select:focus {
+  border-color: #dc2626;
+}
+
+.currency {
+  font-weight: 700;
+  color: #64748b;
 }
 </style>
