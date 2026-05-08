@@ -6,7 +6,7 @@ interface Order {
     numero_orden: string;
     numero_plan: string;
     cantidad: number;
-    observaciones: string;
+    descripcion: string;
     fechacreacion: string;
     idpresupuesto: number;
     estado: string;
@@ -36,10 +36,11 @@ export const useOrderStore = defineStore('order', {
         loading: false,
     }),
     actions: {
-        async getAllOrders() {
+        async getAllOrders(year?: number) {
             this.loading = true;
             try {
-                const response = await api.get('/ordenes/all');
+                const url = year ? `/ordenes/all?year=${year}` : '/ordenes/all';
+                const response = await api.get(url);
                 if (response.data.status === 'success') {
                     this.orders = response.data.orders || [];
                 }
@@ -51,10 +52,10 @@ export const useOrderStore = defineStore('order', {
             }
         },
 
-        async getOrdersByDept(nombreDepartamento: string) {
+        async getOrdersByDept(nombreDepartamento: string, year?: number) {
             this.loading = true;
             try {
-                const response = await api.post('/ordenes', { nombreDepartamento });
+                const response = await api.post('/ordenes', { nombreDepartamento, year });
                 if (response.data.status === 'success') {
                     this.orders = response.data.orders || [];
                 }
@@ -63,6 +64,36 @@ export const useOrderStore = defineStore('order', {
                 this.orders = [];
             } finally {
                 this.loading = false;
+            }
+        },
+
+        async fetchYears() {
+            try {
+                const response = await api.get('/ordenes/years');
+                return response.data.years || [];
+            } catch (err) {
+                console.error('Error fetching years:', err);
+                return [];
+            }
+        },
+
+        async updateOrderStatus(id: number | string, estado: string) {
+            try {
+                const response = await api.post('/ordenes/update-status', { id, estado });
+                return response.data;
+            } catch (err) {
+                console.error('Error updating status:', err);
+                throw err;
+            }
+        },
+
+        async updateDescription(id: number | string, descripcion: string) {
+            try {
+                const response = await api.post('/ordenes/update-observations', { id, descripcion });
+                return response.data;
+            } catch (err) {
+                console.error('Error updating description:', err);
+                throw err;
             }
         },
 
@@ -116,9 +147,38 @@ export const useOrderStore = defineStore('order', {
         async createProduct(productData: { nombre: string; descripcion: string; idProveedor?: string }) {
             try {
                 const response = await api.post('/productos', productData);
+                if (response.data.status === 'success') {
+                    await this.fetchProducts();
+                }
                 return response.data;
             } catch (err) {
                 console.error('Error creating product:', err);
+                throw err;
+            }
+        },
+
+        async updateProduct(id: number | string, productData: any) {
+            try {
+                const response = await api.post(`/productos?action=update&id=${id}`, productData);
+                if (response.data.status === 'success') {
+                    await this.fetchProducts();
+                }
+                return response.data;
+            } catch (err) {
+                console.error('Error updating product:', err);
+                throw err;
+            }
+        },
+
+        async deleteProduct(id: number | string) {
+            try {
+                const response = await api.post(`/productos?action=delete&id=${id}`);
+                if (response.data.status === 'success') {
+                    await this.fetchProducts();
+                }
+                return response.data;
+            } catch (err) {
+                console.error('Error deleting product:', err);
                 throw err;
             }
         },
@@ -153,6 +213,46 @@ export const useOrderStore = defineStore('order', {
                 return response.data;
             } catch (err) {
                 console.error('Error uploading invoice:', err);
+                throw err;
+            }
+        },
+
+        async fetchComments(orderId: string | number) {
+            try {
+                const response = await api.get(`/comentarios?idOrden=${orderId}`);
+                return response.data.comentarios || [];
+            } catch (err) {
+                console.error('Error fetching comments:', err);
+                return [];
+            }
+        },
+
+        async addComment(orderId: string | number, comentario: string) {
+            try {
+                const response = await api.post('/comentarios', { idOrden: orderId.toString(), comentario });
+                return response.data;
+            } catch (err) {
+                console.error('Error adding comment:', err);
+                throw err;
+            }
+        },
+
+        async fetchNotifications() {
+            try {
+                const response = await api.get('/notificaciones');
+                return response.data.notificaciones || [];
+            } catch (err) {
+                console.error('Error fetching notifications:', err);
+                return [];
+            }
+        },
+
+        async markNotificationAsRead(idNotificacion: string | number) {
+            try {
+                const response = await api.post('/notificaciones/read', { idNotificacion: idNotificacion.toString() });
+                return response.data;
+            } catch (err) {
+                console.error('Error marking notification as read:', err);
                 throw err;
             }
         }

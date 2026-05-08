@@ -13,21 +13,25 @@ const menuItems = [
     to: '/',
     icon: 'home',
   },
-  // if it's not admin user isn't avaible to see presupuestos.
- {
+  {
     label: 'Presupuestos',
     to: '/presupuestos',
-    icon: 'budget',
+    icon: 'payments',
   },
   {
     label: 'Ordenes de compra',
     to: '/ordenes',
-    icon: 'buy',
+    icon: 'shopping_cart',
+  },
+  {
+    label: 'Proveedores',
+    to: '/proveedores',
+    icon: 'local_shipping',
   },
   {
     label: 'Historico',
     to: '/historico',
-    icon: 'search',
+    icon: 'history',
   },
 ];
 
@@ -61,8 +65,9 @@ function toggleCollapse() {
               :to="item.to"
               class="nav-item"
               :class="{ active: route.path === item.to }"
-              :title=item.label
+              :title="item.label"
             >
+              <span class="material-symbols-outlined nav-icon">{{ item.icon }}</span>
               <span class="nav-text">{{ item.label }}</span>
             </RouterLink>
           </li>
@@ -82,6 +87,7 @@ function toggleCollapse() {
               :class="{ active: route.path === item.to }"
               :title="isCollapsed ? item.label : ''"
             >
+              <span class="material-symbols-outlined nav-icon">{{ item.icon }}</span>
               <span class="nav-text">{{ item.label }}</span>
             </RouterLink>
           </li>

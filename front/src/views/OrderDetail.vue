@@ -1,18 +1,29 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useOrderStore } from '@/stores/orders';
+import { useAuthStore } from '@/stores/auth';
 import PdfPreview from '../components/orders/PdfPreview.vue';
+
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 const orderStore = useOrderStore();
 const detail = ref<any>(null);
 const loading = ref(true);
 const previewUrl = ref<string | null>(null);
+const description = ref('');
+const comments = ref<any[]>([]);
+const newComment = ref('');
+const sendingComment = ref(false);
+
+const canEditDescription = computed(() => {
+  const rol = authStore.user?.rol;
+  return rol === 'Administrador' || rol === 'Contable';
+});
 
 function openPreview(id: string | number) {
-  // Use absolute backend path
   previewUrl.value = `http://localhost:8080/backend/api/facturas/view?id=${id}`;
 }
 
@@ -20,17 +31,79 @@ function closePreview() {
   previewUrl.value = null;
 }
 
+async function saveDescription() {
+  try {
+    const res = await orderStore.updateDescription(detail.value.order.idorden, description.value);
+    if (res.status === 'success') {
+      detail.value.order.descripcion = description.value;
+      alert('Descripción actualizada');
+    }
+  } catch (err) {
+    alert('Error al guardar la descripción');
+  }
+}
+
+async function fetchComments() {
+  const id = route.params.id as string;
+  comments.value = await orderStore.fetchComments(id);
+}
+
+async function postComment() {
+  if (!newComment.value.trim()) return;
+  sendingComment.value = true;
+  try {
+    const id = route.params.id as string;
+    const res = await orderStore.addComment(id, newComment.value);
+    if (res.status === 'success') {
+      newComment.value = '';
+      await fetchComments();
+    }
+  } catch (err) {
+    alert('Error al añadir comentario');
+  } finally {
+    sendingComment.value = false;
+  }
+}
+
 onMounted(async () => {
   const id = route.params.id as string;
   const data = await orderStore.fetchOrderDetail(id);
   if (data) {
     detail.value = data;
+    description.value = data.order.descripcion || '';
+    await fetchComments();
   }
   loading.value = false;
 });
 
 function goBack() {
   router.push('/ordenes');
+}
+
+const formatType = (type: string) => {
+  const t = (type || '').toLowerCase();
+  if (t === 'planinversion' || t.includes('inversion') || t.includes('plan')) {
+    return 'Plan Inversión';
+  }
+  return 'Presupuesto';
+};
+async function downloadFactura(id: string | number) {
+  try {
+    const url = `http://localhost:8080/backend/api/facturas/view?id=${id}&action=download`;
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.setAttribute('download', `factura_${id}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    console.error('Error al descargar factura:', err);
+    alert('No se pudo descargar la factura');
+  }
 }
 </script>
 
@@ -84,14 +157,22 @@ function goBack() {
         </div>
         <div class="info-card">
           <span class="info-label">Presupuesto</span>
-          <span class="info-value">{{ detail.order.presupuesto_codigo }} [{{ detail.order.presupuesto_tipo || 'P' }}]</span>
+          <span class="info-value">{{ detail.order.presupuesto_codigo }} [{{ formatType(detail.order.presupuesto_tipo) }}]</span>
         </div>
       </div>
 
-      <!-- Observaciones -->
-      <div v-if="detail.order.observaciones" class="section-card">
-        <h2>Observaciones</h2>
-        <p class="observations-text">{{ detail.order.observaciones }}</p>
+      <!-- Descripción -->
+      <div class="section-card">
+        <h2>Descripción de la Orden</h2>
+        <div v-if="canEditDescription" class="edit-obs-box">
+          <textarea 
+            v-model="description" 
+            class="obs-textarea" 
+            placeholder="Añadir descripción o detalles sobre la orden..."
+          ></textarea>
+          <button class="save-obs-btn" @click="saveDescription">Guardar Descripción</button>
+        </div>
+        <p v-else class="observations-text">{{ detail.order.descripcion || 'Sin descripción' }}</p>
       </div>
 
       <!-- Productos -->
@@ -104,7 +185,6 @@ function goBack() {
                 <th>Producto</th>
                 <th>Descripción</th>
                 <th>Proveedor</th>
-                <th>Precio</th>
               </tr>
             </thead>
             <tbody>
@@ -115,7 +195,6 @@ function goBack() {
                   <span v-if="prod.proveedor" class="proveedor-badge">{{ prod.proveedor }}</span>
                   <span v-else class="no-prov">Sin proveedor</span>
                 </td>
-                <td class="prod-price">{{ prod.precioUnitario }}€</td>
               </tr>
             </tbody>
           </table>
@@ -127,21 +206,67 @@ function goBack() {
       <div class="section-card">
         <h2>Facturas</h2>
         <div v-if="detail.facturas && detail.facturas.length > 0" class="facturas-list">
-          <div v-for="fac in detail.facturas" :key="fac.idfactura" 
-               class="factura-item clickable" @click="openPreview(fac.idfactura)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20">
-              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
-            <div class="factura-info">
-              <span class="factura-name">Factura #{{ fac.idfactura }}</span>
-              <span class="factura-date">{{ fac.fechacreacion }}</span>
+          <div v-for="fac in detail.facturas" :key="fac.idfactura" class="factura-item">
+            <div class="factura-main" @click="openPreview(fac.idfactura)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              <div class="factura-info">
+                <span class="factura-name">Factura #{{ fac.idfactura }}</span>
+                <span class="factura-date">{{ fac.fechacreacion }}</span>
+              </div>
+              <span class="view-hint">Ver PDF</span>
             </div>
-            <span class="view-hint">Ver PDF</span>
+            <button @click="downloadFactura(fac.idfactura)" class="list-download-btn" title="Descargar PDF">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </button>
           </div>
         </div>
         <p v-else class="empty-text">No hay facturas adjuntas.</p>
       </div>
+
+      <!-- Sistema de Comentarios -->
+      <div class="section-card comments-section">
+        <h2>Hilo de Comentarios</h2>
+        <div class="comments-list">
+          <div v-if="comments.length === 0" class="empty-comments">
+            <p>No hay comentarios aún. Sé el primero en escribir.</p>
+          </div>
+          <div v-for="comment in comments" :key="comment.idComentario" class="comment-bubble">
+            <div class="comment-header">
+              <span class="comment-user">{{ comment.usuario }}</span>
+              <span class="comment-date">{{ comment.fecha }}</span>
+            </div>
+            <div class="comment-text">{{ comment.comentario }}</div>
+          </div>
+        </div>
+
+        <div class="add-comment-box">
+          <input 
+            v-model="newComment" 
+            type="text" 
+            placeholder="Escribe un comentario..." 
+            @keyup.enter="postComment"
+            :disabled="sendingComment"
+          />
+          <button @click="postComment" :disabled="sendingComment || !newComment.trim()" class="send-btn">
+            <svg v-if="!sendingComment" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            <span v-else class="loader-mini"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-else-if="!loading" class="error-state">
+      <p>No se pudo cargar el detalle de la orden.</p>
     </div>
 
     <!-- PDF Preview Overlay -->
@@ -149,16 +274,22 @@ function goBack() {
       <div class="preview-modal">
         <div class="preview-header">
           <h3>Vista Previa: Factura</h3>
-          <button class="close-modal-btn" @click="closePreview">&times;</button>
+          <div class="header-actions">
+            <button @click="downloadFactura(previewUrl.split('id=')[1].split('&')[0])" class="download-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4a2 2 0 0 1 2-2h14" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Descargar PDF
+            </button>
+            <button class="close-modal-btn" @click="closePreview">&times;</button>
+          </div>
         </div>
         <div class="preview-body">
           <PdfPreview :pdfUrl="previewUrl" />
         </div>
       </div>
-    </div>
-
-    <div v-else-if="!loading" class="error-state">
-      <p>No se pudo cargar el detalle de la orden.</p>
     </div>
   </div>
 </template>
@@ -280,21 +411,60 @@ function goBack() {
 }
 .no-prov { color: #9ca3af; font-size: 12px; }
 
-.facturas-list { display: flex; flex-direction: column; gap: 10px; }
-.factura-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 16px; background: #f9fafb; border: 1px solid #e5e7eb;
-  border-radius: 10px; transition: all 0.2s;
+.facturas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.factura-item:hover { background: #f3f4f6; }
-.factura-item svg { color: #dc2626; flex-shrink: 0; }
-.factura-info { display: flex; flex-direction: column; }
-.factura-name { font-size: 14px; font-weight: 600; color: #1f2937; }
-.factura-date { font-size: 12px; color: #9ca3af; }
 
-.factura-item.clickable { cursor: pointer; }
-.factura-item.clickable:hover { background: #fef2f2; border-color: #fecaca; }
-.factura-item.clickable:hover svg { transform: scale(1.1); transition: transform 0.2s; }
+.factura-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  transition: all 0.2s;
+}
+
+.factura-item:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.factura-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.factura-item svg { color: #dc2626; }
+
+.factura-info { display: flex; flex-direction: column; }
+.factura-name { font-size: 14px; font-weight: 700; color: #1f2937; }
+.factura-date { font-size: 12px; color: #64748b; }
+
+.list-download-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.list-download-btn:hover {
+  background: white;
+  color: #0f172a;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
 
 .view-hint {
   margin-left: auto;
@@ -304,7 +474,7 @@ function goBack() {
   opacity: 0;
   transition: opacity 0.2s;
 }
-.factura-item:hover .view-hint { opacity: 1; }
+.factura-main:hover .view-hint { opacity: 1; }
 
 /* Preview Overlay Styles */
 .preview-overlay {
@@ -347,13 +517,194 @@ function goBack() {
 }
 .close-modal-btn:hover { color: #dc2626; }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0f172a;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.download-btn:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
 .preview-body {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  background: #525659;
+  background: #ffffff;
+  display: flex;
+  justify-content: center;
 }
 
 .empty-text { color: #9ca3af; font-size: 14px; margin: 0; }
 .loading-state, .error-state { text-align: center; padding: 64px; color: #9ca3af; }
+
+.edit-obs-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.obs-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #1f2937;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.obs-textarea:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.save-obs-btn {
+  align-self: flex-end;
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.save-obs-btn:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+/* Comments Section */
+.comments-section {
+  background: #f8fafc !important;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.comment-bubble {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.comment-user {
+  font-weight: 700;
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.comment-date {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.comment-text {
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.empty-comments {
+  text-align: center;
+  padding: 20px;
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 14px;
+}
+
+.add-comment-box {
+  display: flex;
+  gap: 12px;
+  background: white;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.add-comment-box input {
+  flex: 1;
+  border: none;
+  padding: 8px 12px;
+  font-size: 14px;
+  outline: none;
+  background: transparent;
+}
+
+.send-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.send-btn:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: scale(1.05);
+}
+
+.send-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.loader-mini {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 </style>

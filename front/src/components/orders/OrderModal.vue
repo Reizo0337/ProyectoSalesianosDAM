@@ -26,7 +26,7 @@ const form = reactive({
   Cantidad: '',
   Inversion: false,
   Tipo: 'Fungible',
-  Observaciones: '',
+  descripcion: '',
   departmentCode: authStore.user?.codigoDepartamento || '',
   seqNumber: '',
   year: new Date().getFullYear().toString().slice(-2),
@@ -60,29 +60,37 @@ onMounted(async () => {
   await orderStore.fetchSuppliers();
   await presupuestoStore.getAllPresupuestos();
   
-  // Try to find a budget for user's department
   const userDept = authStore.user?.idDepartamento;
   if (userDept) {
-     const myBudget = presupuestoStore.presupuestos.find(p => p.nombredepartamento === userDept);
-     if (myBudget) form.idPresupuesto = myBudget.idpresupuesto.toString();
-     
      // Auto-fetch next sequence number
      const nextSeq = await orderStore.fetchNextSequence(form.departmentCode, form.year);
      form.seqNumber = nextSeq;
+     
+     // Automated budget selection
+     updateBudgetSelection();
   }
 });
 
-watch(() => form.idPresupuesto, (newId) => {
-  if (!newId) return;
-  const budget = presupuestoStore.presupuestos.find(p => p.idpresupuesto.toString() === newId.toString());
-  if (budget) {
-    if (budget.type === 'planInversion') {
-      form.typeCode = '0'; // Invariable/Inversion
-    } else {
-      form.typeCode = '1'; // Fungible
-    }
+function updateBudgetSelection() {
+  const userDept = authStore.user?.idDepartamento;
+  if (!userDept) return;
+
+  const isPlan = form.typeCode === '0';
+  const myBudget = presupuestoStore.presupuestos.find(p => {
+    const sameDept = p.nombredepartamento === userDept;
+    const isPlanBudget = (p.type || '').toLowerCase().includes('plan') || (p.type || '').toLowerCase().includes('inversion');
+    return sameDept && (isPlan ? isPlanBudget : !isPlanBudget);
+  });
+
+  if (myBudget) {
+    form.idPresupuesto = myBudget.idpresupuesto.toString();
   }
+}
+
+watch(() => form.typeCode, () => {
+  updateBudgetSelection();
 });
+
 
 function addProduct() {
   form.products.push({ idProducto: '', precio: '' });
@@ -162,6 +170,14 @@ function nextStep() {
 function prevStep() {
   if (step.value > 1) step.value--;
 }
+
+const formatType = (type: string) => {
+  const t = (type || '').toLowerCase();
+  if (t === 'planinversion' || t.includes('inversion') || t.includes('plan')) {
+    return 'Plan Inversión';
+  }
+  return 'Presupuesto';
+};
 </script>
 
 <template>
@@ -178,15 +194,7 @@ function prevStep() {
       <div class="modal-body">
         <!-- Step 1: Base Info -->
         <div v-if="step === 1" class="form-step">
-          <div class="form-group">
-            <label>Presupuesto Asociado</label>
-            <select v-model="form.idPresupuesto" class="form-input">
-              <option value="">Seleccionar presupuesto...</option>
-              <option v-for="p in presupuestoStore.presupuestos" :key="p.idpresupuesto" :value="p.idpresupuesto">
-                {{ p.codigo }} - {{ p.nombrepresupuesto }} [{{ p.type || 'P' }}] ({{ p.nombredepartamento }})
-              </option>
-            </select>
-          </div>
+            <!-- Removed manual budget selection as it's now automated -->
 
           <div class="type-toggle">
             <button 
@@ -271,8 +279,8 @@ function prevStep() {
         <!-- Step 3: Attachments & Review -->
         <div v-if="step === 3" class="form-step">
           <div class="form-group">
-            <label>Observaciones</label>
-            <textarea v-model="form.Observaciones" placeholder="Detalles adicionales..." class="form-input tall"></textarea>
+            <label>Descripción</label>
+            <textarea v-model="form.descripcion" placeholder="Resumen o detalles de la orden..." class="form-input tall"></textarea>
           </div>
 
           <div class="form-group">

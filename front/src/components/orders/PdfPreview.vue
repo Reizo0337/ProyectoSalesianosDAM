@@ -125,20 +125,21 @@ const zoomOut = () => {
 .pdf-viewer-container {
   display: flex;
   flex-direction: column;
-  background: var(--bg-tertiary);
+  background: #f8fafc;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e2e8f0;
   width: 100%;
 }
 
 .pdf-toolbar {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 15px;
   padding: 10px 20px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
   z-index: 10;
 }
 
@@ -151,54 +152,55 @@ const zoomOut = () => {
 .toolbar-divider {
   width: 1px;
   height: 24px;
-  background: var(--border-color);
+  background: #e2e8f0;
 }
 
 .tool-btn {
-  background: transparent;
-  border: 1px solid var(--border-color);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 6px;
-  padding: 4px;
+  padding: 6px;
   cursor: pointer;
-  color: var(--text-primary);
+  color: #1e293b;
   display: flex;
   align-items: center;
   transition: all 0.2s;
 }
 
 .tool-btn:hover:not(:disabled) {
-  background: var(--button-secondary-hover);
-  border-color: var(--button-primary);
-  color: var(--button-primary);
+  background: #f8fafc;
+  border-color: #0f172a;
+  color: #0f172a;
 }
 
 .tool-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
 .page-info, .zoom-info {
   font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  min-width: 80px;
+  font-weight: 700;
+  color: #475569;
+  min-width: 100px;
   text-align: center;
 }
 
 .pdf-canvas-wrapper {
   flex: 1;
   overflow: auto;
-  padding: 20px;
+  padding: 30px;
   display: flex;
   justify-content: center;
-  background: #525659; /* Color estándar de visores de PDF */
-  min-height: 500px;
+  background: #f1f5f9;
+  min-height: 600px;
 }
 
 canvas {
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
   max-width: 100%;
   height: auto !important;
+  background: white;
 }
 
 .pdf-loading {
@@ -208,14 +210,14 @@ canvas {
   align-items: center;
   justify-content: center;
   gap: 15px;
-  color: var(--text-secondary);
+  color: #64748b;
 }
 
 .loader {
   width: 40px;
   height: 40px;
-  border: 4px solid var(--border-color);
-  border-top: 4px solid var(--button-primary);
+  border: 4px solid #f1f5f9;
+  border-top: 4px solid #0f172a;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

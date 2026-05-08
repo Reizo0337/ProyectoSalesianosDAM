@@ -28,12 +28,16 @@ onMounted(async () => {
     if (presupuestoStore.presupuestos.length > 0) {
       selectedDept.value = presupuestoStore.presupuestos[0].nombredepartamento;
     }
-  }
+  } 
 });
 
 const uniqueDepartments = computed(() => {
   const depts = presupuestoStore.presupuestos.map(p => p.nombredepartamento).filter(Boolean);
-  return ['Resumen Global', ...new Set(depts)];
+  const setDepts = [...new Set(depts)];
+  if (rolUsuario.value === 'Administrador') {
+    return ['Resumen Global', ...setDepts];
+  }
+  return setDepts;
 });
 
 const filteredBudgets = computed(() => {
@@ -81,7 +85,11 @@ const statsByType = computed(() => {
 });
 
 const viewTitle = computed(() => {
-  if (selectedDept.value === 'Resumen Global') return 'Presupuestos: Todos los departamentos';
+  if (selectedDept.value === 'Resumen Global') {
+    return rolUsuario.value === 'Administrador' 
+      ? 'Presupuestos: Todos los departamentos' 
+      : 'Cargando presupuestos...';
+  }
   return `Presupuestos: ${selectedDept.value}`;
 });
 
@@ -107,8 +115,8 @@ const filteredOrdersTable = computed(() => {
       </div>
     </header>
 
-    <!-- Floating Department Buttons -->
-    <div class="dept-selector animate-fade-in" style="animation-delay: 0.1s">
+    <!-- Floating Department Buttons - Only for Admins -->
+    <div v-if="rolUsuario === 'Administrador'" class="dept-selector animate-fade-in" style="animation-delay: 0.1s">
       <button 
         v-for="dept in uniqueDepartments" 
         :key="dept"

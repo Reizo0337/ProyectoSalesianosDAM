@@ -19,7 +19,7 @@ public class Login {
         }
 
         // Nombre, correo, rol, idDepartamento
-        String sql = "SELECT u.Nombre as usuario_nombre, u.correo, r.Nombre as rol_nombre, d.Nombre as dep_nombre, d.Codigo as dep_codigo " +
+        String sql = "SELECT u.IdUsuario, u.Nombre as usuario_nombre, u.correo, r.Nombre as rol_nombre, d.Nombre as dep_nombre, d.Codigo as dep_codigo " +
                      "FROM usuario u " +
                      "LEFT JOIN roles r ON u.idRol = r.idRol " +
                      "LEFT JOIN departamento d ON u.idDepartamento = d.idDepartamento " +
@@ -34,6 +34,7 @@ public class Login {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     Map<String, String> user = new HashMap<>();
+                    user.put("idUsuario", String.valueOf(rs.getInt("idUsuario")));
                     user.put("nombre", rs.getString("usuario_nombre"));
                     user.put("correo", rs.getString("correo"));
                     user.put("rol", rs.getString("rol_nombre"));

@@ -9,6 +9,14 @@ const presupuestoStore = usePresupuestoStore();
 
 const headers = ['ID', 'Código', 'Nombre', 'Tipo', 'Cantidad', 'Gasto', 'Departamento', 'Acciones'];
 
+const formatType = (type: string) => {
+  const t = (type || '').toLowerCase();
+  if (t === 'planinversion' || t.includes('inversion') || t.includes('plan')) {
+    return 'Plan Inversión';
+  }
+  return 'Presupuesto';
+};
+
 onMounted(async () => {
   if (authStore.user?.rol === 'Administrador') {
     await presupuestoStore.getAllPresupuestos();
@@ -33,7 +41,7 @@ onMounted(async () => {
           p.idpresupuesto,
           p.codigo,
           p.nombrepresupuesto,
-          p.type || 'Presupuesto',
+          formatType(p.type),
           p.cantidad + '€',
           p.gasto + '€',
           p.nombredepartamento

@@ -34,7 +34,8 @@ const filteredOrders = computed(() => {
 async function refreshOrders() {
   const dept = authStore.user?.rol === 'Administrador' ? 'Admin' : authStore.user?.idDepartamento;
   if (dept) {
-    await orderStore.getOrdersByDept(dept);
+    const currentYear = new Date().getFullYear();
+    await orderStore.getOrdersByDept(dept, currentYear);
   }
 }
 

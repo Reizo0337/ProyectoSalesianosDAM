@@ -7,6 +7,7 @@ const props = defineProps<{
   title?: string
   searchable?: boolean
   statusColumn?: number
+  onRowClick?: (row: any[]) => void
 }>()
 
 const searchQuery = ref('')
@@ -45,7 +46,10 @@ const filteredData = computed(() => {
   if (searchQuery.value.trim()) {
     const q = searchQuery.value.toLowerCase()
     rows = rows.filter(row =>
-      row.some(cell => String(cell).toLowerCase().includes(q))
+      row.some(cell => {
+        if (typeof cell === 'object') return false;
+        return String(cell).toLowerCase().includes(q);
+      })
     )
   }
 
@@ -109,6 +113,8 @@ const filteredData = computed(() => {
             v-for="(row, rIdx) in filteredData"
             :key="rIdx"
             class="table-row"
+            :class="{ clickable: !!onRowClick }"
+            @click="onRowClick?.(row)"
             :style="{ animationDelay: `${rIdx * 0.04}s` }"
           >
             <td v-for="(cell, cIdx) in row" :key="cIdx">
@@ -131,9 +137,23 @@ const filteredData = computed(() => {
               </span>
 
               <!-- Price column -->
-              <span v-else-if="String(cell).includes('€')" class="cell-price">
+              <span v-else-if="typeof cell === 'string' && cell.includes('€')" class="cell-price">
                 {{ cell }}
               </span>
+
+              <!-- Actions column -->
+              <div v-else-if="typeof cell === 'object' && cell?.type === 'actions'" class="cell-actions">
+                <button 
+                  v-for="(action, aIdx) in cell.actions" 
+                  :key="aIdx"
+                  @click.stop="action.onClick"
+                  class="action-btn"
+                  :class="action.class"
+                  :title="action.label"
+                >
+                  <span class="material-symbols-outlined">{{ action.icon }}</span>
+                </button>
+              </div>
 
               <!-- Default cell -->
               <span v-else>{{ cell }}</span>
@@ -309,11 +329,15 @@ th.sortable:hover {
 }
 
 .table-row:hover {
-  background-color: #f5f3ff;
+  background-color: #f8fafc;
 }
 
-.table-row:not(:last-child) td {
-  border-bottom: 1px solid #f3f4f6;
+.table-row.clickable {
+  cursor: pointer;
+}
+
+.table-row.clickable:hover {
+  background-color: #f1f5f9;
 }
 
 td {
@@ -338,6 +362,37 @@ td {
   font-weight: 600;
   color: #1f2937;
   font-variant-numeric: tabular-nums;
+}
+
+/* ─── Actions Cell ────────────────────────────── */
+.cell-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid #f3f4f6;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #64748b;
+}
+
+.action-btn:hover {
+  background: #f9fafb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.action-btn .material-symbols-outlined {
+  font-size: 18px;
 }
 
 /* ─── Status Badge ────────────────────────────── */
