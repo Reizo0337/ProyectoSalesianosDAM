@@ -187,21 +187,21 @@ async function handleRegister() {
   height: 44px;
   padding: 0 16px;
   border: 1.5px solid #e5e7eb;
-  border-radius: 10px;
+  border-radius: 4px;
   background: #f9fafb;
   outline: none;
   transition: all 0.2s;
 }
 .input-wrapper input:focus { border-color: #dc2626; background: #fff; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1); }
 
-.error-banner { padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #dc2626; font-size: 13px; text-align: center; }
+.error-banner { padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 4px; color: #dc2626; font-size: 13px; text-align: center; }
 
 .submit-btn {
   height: 48px;
   background: linear-gradient(135deg, #dc2626, #b91c1c);
   color: white;
   border: none;
-  border-radius: 12px;
+  border-radius: 4px;
   font-weight: 700;
   cursor: pointer;
   display: flex;

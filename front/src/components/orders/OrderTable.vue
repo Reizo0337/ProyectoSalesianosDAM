@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 interface Order {
@@ -16,6 +17,28 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
+
+const currentPage = ref(1);
+const pageSize = 10;
+
+const totalPages = computed(() => Math.ceil(props.orders.length / pageSize));
+
+const paginatedOrders = computed(() => {
+  const start = (currentPage.value - 1) * pageSize;
+  return props.orders.slice(start, start + pageSize);
+});
+
+function nextPage() {
+  if (currentPage.value < totalPages.value) currentPage.value++;
+}
+
+function prevPage() {
+  if (currentPage.value > 1) currentPage.value--;
+}
+
+watch(() => props.orders, () => {
+  currentPage.value = 1;
+});
 
 const emit = defineEmits(['edit']);
 
@@ -48,7 +71,7 @@ function formatDate(dateStr: string) {
       </thead>
       <tbody>
         <tr
-          v-for="order in orders"
+          v-for="order in paginatedOrders"
           :key="order.idorden"
           class="table-row clickable"
           @click="goToDetail(order.idorden)"
@@ -77,28 +100,33 @@ function formatDate(dateStr: string) {
         </tr>
       </tbody>
     </table>
+    <div class="pagination-controls" v-if="totalPages > 1">
+      <button @click="prevPage" :disabled="currentPage === 1" class="page-btn">Anterior</button>
+      <span class="page-info">Página {{ currentPage }} de {{ totalPages }}</span>
+      <button @click="nextPage" :disabled="currentPage === totalPages" class="page-btn">Siguiente</button>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .table-scroll { overflow-x: auto; width: 100%; }
 table { width: 100%; border-collapse: collapse; }
-thead { background: linear-gradient(180deg, #f9fafb, #f3f4f6); }
-th { padding: 14px 20px; text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #e5e7eb; }
-td { padding: 16px 20px; font-size: 14px; color: #374151; }
-.table-row { transition: background-color 0.18s; }
-.table-row:not(:last-child) td { border-bottom: 1px solid #f3f4f6; }
+thead { background: #1e293b; border-bottom: 2px solid #0f172a; }
+th { padding: 14px 16px; text-align: left; font-size: 12px; font-weight: 700; color: #f8fafc; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: none; }
+td { padding: 14px 16px; font-size: 13px; color: #334155; border-bottom: 1px solid #e2e8f0; }
+.table-row { transition: background-color 0.15s; }
+.table-row:nth-child(even) { background-color: #f8fafc; }
 .table-row.clickable { cursor: pointer; }
-.table-row.clickable:hover { background-color: #fef2f2; }
-.cell-order-num { font-weight: 700; font-size: 13px; color: #dc2626; background: #fef2f2; padding: 4px 10px; border-radius: 6px; }
+.table-row.clickable:hover { background-color: #e2e8f0; }
+.cell-order-num { font-weight: 700; font-size: 13px; color: #dc2626; background: #fef2f2; padding: 4px 10px; border-radius: 4px; }
 .cell-date { font-size: 13px; color: #6b7280; font-variant-numeric: tabular-nums; }
 .cell-price { font-weight: 600; color: #1f2937; font-variant-numeric: tabular-nums; }
-.status-badge { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+.status-badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 4px; font-size: 13px; font-weight: 600; }
 .status-pendiente { background: #fef9c3; color: #ca8a04; }
 .status-aprobado { background: #dcfce7; color: #16a34a; }
 .status-rechazado { background: #fee2e2; color: #dc2626; }
 .status-cerrada { background: #fee2e2; color: #dc2626; }
-.factura-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+.factura-badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
 .has-factura { background: #dcfce7; color: #16a34a; }
 .no-factura { background: #f3f4f6; color: #9ca3af; }
 
@@ -107,7 +135,7 @@ td { padding: 16px 20px; font-size: 14px; color: #374151; }
   border: none;
   color: #dc2626;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
@@ -118,6 +146,14 @@ td { padding: 16px 20px; font-size: 14px; color: #374151; }
 .edit-icon-btn:hover {
   background: #fef2f2;
   color: #b91c1c;
-  transform: scale(1.1);
 }
+
+.pagination-controls {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-top: 1px solid #e2e8f0; background: #f8fafc;
+}
+.page-info { font-size: 13px; font-weight: 600; color: #475569; }
+.page-btn { padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer; transition: all 0.2s; }
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.page-btn:not(:disabled):hover { background: #f1f5f9; border-color: #94a3b8; }
 </style>

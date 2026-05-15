@@ -12,6 +12,7 @@ const router = useRouter();
 const showModal = ref(false);
 const isEditing = ref(false);
 const currentId = ref<number | null>(null);
+const searchQuery = ref('');
 
 const form = ref({
   nombre: '',
@@ -19,7 +20,7 @@ const form = ref({
   direccion: ''
 });
 
-const headers = ['ID', 'Nombre', 'Teléfono', 'Dirección', 'Acciones'];
+const headers = ['ID', 'Nombre', 'Teléfono', 'Dirección'];
 
 const canManage = computed(() => {
   const rol = authStore.user?.rol;
@@ -31,6 +32,17 @@ watch(() => authStore.user, (user) => {
     supplierStore.fetchSuppliers();
   }
 }, { immediate: true });
+
+const filteredSuppliers = computed(() => {
+  if (!searchQuery.value.trim()) return supplierStore.suppliers;
+  const q = searchQuery.value.toLowerCase();
+  return supplierStore.suppliers.filter(s => 
+    String(s.idproveedor).includes(q) ||
+    (s.nombre || '').toLowerCase().includes(q) ||
+    (s.telefono || '').toLowerCase().includes(q) ||
+    (s.direccion || '').toLowerCase().includes(q)
+  );
+});
 
 
 function openCreate() {
@@ -85,14 +97,20 @@ function viewProducts(id: number) {
     <div class="header-section">
       <div class="title-box">
         <h1>Gestión de Proveedores</h1>
-        <p>Directorio de partners y suministradores oficiales.</p>
+        <p>Directorio de partners y suministradores oficiales. <span class="result-count-inline" v-if="supplierStore.suppliers.length > 0">({{ filteredSuppliers.length }} resultados)</span></p>
       </div>
-      <button v-if="canManage" class="create-btn" @click="openCreate">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20">
-          <path d="M12 5v14M5 12h14" />
-        </svg>
-        Nuevo Proveedor
-      </button>
+      <div class="header-actions">
+        <div class="search-box" v-if="supplierStore.suppliers.length > 0">
+          <span class="material-symbols-outlined search-icon">search</span>
+          <input v-model="searchQuery" type="text" placeholder="Buscar proveedor..." class="search-input" />
+        </div>
+        <button v-if="canManage" class="create-btn" @click="openCreate">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Nuevo Proveedor
+        </button>
+      </div>
     </div>
 
     <div class="table-card">
@@ -101,24 +119,20 @@ function viewProducts(id: number) {
         <p>Cargando proveedores...</p>
       </div>
       <Table
-        v-else-if="supplierStore.suppliers.length > 0"
+        v-else-if="filteredSuppliers.length > 0"
         :headers="headers"
-        :data="supplierStore.suppliers.map(s => [
+        :data="filteredSuppliers.map(s => [
           s.idproveedor,
           s.nombre,
           s.telefono,
-          s.direccion,
-          {
-            type: 'actions',
-            actions: [
-              { label: 'Editar', icon: 'edit', onClick: () => openEdit(s), class: 'btn-edit', hide: !canManage },
-              { label: 'Borrar', icon: 'delete', onClick: () => handleDelete(s.idproveedor), class: 'btn-delete', hide: !canManage }
-            ]
-          }
+          s.direccion
         ])"
-        :searchable="true"
+        :searchable="false"
         :onRowClick="(row) => viewProducts(row[0])"
       />
+      <div v-else-if="supplierStore.suppliers.length > 0" class="empty-state">
+        <p>No se encontraron resultados para la búsqueda.</p>
+      </div>
       <div v-else class="empty-state">
         <span class="material-symbols-outlined">local_shipping</span>
         <p>No hay proveedores registrados.</p>
@@ -168,48 +182,36 @@ function viewProducts(id: number) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 2rem;
 }
+.header-section h1 { font-size: 2.25rem; font-weight: 800; color: #1e293b; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+.header-section p { color: #64748b; font-size: 1.1rem; }
+.result-count-inline { font-weight: 600; color: #475569; margin-left: 8px; }
 
-.title-box h1 {
-  font-size: 2.5rem;
-  font-weight: 850;
-  letter-spacing: -0.04em;
-  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 0.5rem;
-}
+.header-actions { display: flex; align-items: center; gap: 16px; }
 
-.title-box p {
-  color: #64748b;
-  font-size: 1.1rem;
+.search-box {
+  display: flex; align-items: center; background: #f9fafb;
+  border: 1px solid #e5e7eb; border-radius: 4px; padding: 0 12px;
+  width: 300px; transition: all 0.25s;
 }
+.search-box:focus-within { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1); background: #fff; }
+.search-icon { font-size: 20px; color: #9ca3af; margin-right: 8px; }
+.search-input { border: none; outline: none; background: transparent; font-size: 14px; color: #1f2937; padding: 10px 0; width: 100%; }
 
 .create-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+  display: flex; align-items: center; gap: 0.5rem;
+  background: #dc2626; color: white;
+  padding: 0.75rem 1.5rem; border-radius: 4px;
+  font-weight: 600; border: none; cursor: pointer;
+  transition: all 0.3s;
 }
 
-.create-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
-}
+.create-btn:hover { background: #b91c1c; }
 
 .table-card {
   background: white;
-  padding: 2rem;
-  border-radius: 24px;
+  border-radius: 4px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
   border: 1px solid #f1f5f9;
 }
@@ -230,7 +232,7 @@ function viewProducts(id: number) {
   background: white;
   width: 90%;
   max-width: 700px;
-  border-radius: 28px;
+  border-radius: 4px;
   overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
@@ -270,7 +272,7 @@ function viewProducts(id: number) {
   width: 100%;
   padding: 0.875rem 1rem;
   border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 4px;
   font-size: 1rem;
   transition: all 0.2s;
 }
@@ -290,7 +292,7 @@ function viewProducts(id: number) {
 
 .cancel-btn {
   padding: 0.875rem 1.5rem;
-  border-radius: 12px;
+  border-radius: 4px;
   font-weight: 700;
   background: #f1f5f9;
   color: #64748b;
@@ -300,7 +302,7 @@ function viewProducts(id: number) {
 
 .submit-btn {
   padding: 0.875rem 1.5rem;
-  border-radius: 12px;
+  border-radius: 4px;
   font-weight: 700;
   background: #0f172a;
   color: white;

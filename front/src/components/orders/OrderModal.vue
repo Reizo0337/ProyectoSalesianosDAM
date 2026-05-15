@@ -340,7 +340,7 @@ const formatType = (type: string) => {
   background: white;
   width: 90%;
   max-width: 600px;
-  border-radius: 24px;
+  border-radius: 4px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
@@ -407,7 +407,7 @@ const formatType = (type: string) => {
   width: 100%;
   padding: 12px 16px;
   border: 1.5px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 4px;
   font-size: 14px;
   transition: all 0.2s;
   box-sizing: border-box;
@@ -423,7 +423,7 @@ const formatType = (type: string) => {
   display: flex;
   background: #f1f5f9;
   padding: 4px;
-  border-radius: 12px;
+  border-radius: 4px;
   margin-bottom: 20px;
 }
 
@@ -432,7 +432,7 @@ const formatType = (type: string) => {
   padding: 8px;
   border: none;
   background: none;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 13px;
   font-weight: 600;
   color: #64748b;
@@ -449,7 +449,7 @@ const formatType = (type: string) => {
 .order-gen-box {
   background: #fff1f2;
   padding: 16px;
-  border-radius: 16px;
+  border-radius: 4px;
   border: 1px solid #fecaca;
 }
 
@@ -464,7 +464,7 @@ const formatType = (type: string) => {
   width: 60px;
   padding: 8px;
   border: 1px solid #fda4af;
-  border-radius: 8px;
+  border-radius: 4px;
   text-align: center;
   font-weight: 600;
 }
@@ -473,7 +473,7 @@ const formatType = (type: string) => {
   flex: 1;
   padding: 8px;
   border: 1px solid #fda4af;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 .preview-text {
@@ -495,7 +495,7 @@ const formatType = (type: string) => {
   background: #f1f5f9;
   border: 1px dashed #cbd5e1;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
   color: #475569;
@@ -518,7 +518,7 @@ const formatType = (type: string) => {
   border: none;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 4px;
   cursor: pointer;
 }
 
@@ -529,7 +529,7 @@ const formatType = (type: string) => {
 
 .file-drop-zone {
   border: 2px dashed #e2e8f0;
-  border-radius: 16px;
+  border-radius: 4px;
   padding: 24px;
   text-align: center;
   transition: all 0.2s;
@@ -558,7 +558,7 @@ const formatType = (type: string) => {
 .file-list li {
   background: #f8fafc;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 12px;
   color: #475569;
   border: 1px solid #e2e8f0;
@@ -579,7 +579,7 @@ const formatType = (type: string) => {
 
 .nav-btn {
   padding: 10px 24px;
-  border-radius: 10px;
+  border-radius: 4px;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -598,7 +598,7 @@ const formatType = (type: string) => {
 .new-product-form {
   background: #f8fafc;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: 4px;
   border: 1px solid #e2e8f0;
   margin-top: 12px;
 }
@@ -615,7 +615,7 @@ const formatType = (type: string) => {
   color: white;
   border: none;
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -625,7 +625,7 @@ const formatType = (type: string) => {
   background: #e2e8f0;
   border: none;
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;

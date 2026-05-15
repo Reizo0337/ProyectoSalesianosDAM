@@ -107,7 +107,7 @@ watch(selectedYear, () => {
 
 .year-selector {
   display: flex; align-items: center; gap: 16px;
-  background: #f8fafc; padding: 12px 20px; border-radius: 16px;
+  background: #f8fafc; padding: 12px 20px; border-radius: 4px;
   border: 1px solid #e2e8f0;
 }
 .year-selector label { font-weight: 700; color: #64748b; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -119,7 +119,7 @@ watch(selectedYear, () => {
 }
 .year-select {
   appearance: none; -webkit-appearance: none;
-  background: white; border: 2px solid #cbd5e1; border-radius: 10px;
+  background: white; border: 2px solid #cbd5e1; border-radius: 4px;
   padding: 10px 42px 10px 16px; font-size: 16px; font-weight: 700; color: #334155;
   cursor: pointer; transition: all 0.2s ease; min-width: 140px; outline: none;
 }
@@ -134,7 +134,7 @@ watch(selectedYear, () => {
 }
 
 .table-card {
-  background: white; border-radius: 16px;
+  background: white; border-radius: 4px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden;
   border: 1px solid #e5e7eb;
 }
@@ -144,7 +144,7 @@ watch(selectedYear, () => {
 }
 .search-box {
   display: flex; align-items: center; background: #f9fafb;
-  border: 1px solid #e5e7eb; border-radius: 10px; padding: 0 12px;
+  border: 1px solid #e5e7eb; border-radius: 4px; padding: 0 12px;
   flex: 1; max-width: 360px; transition: all 0.25s;
 }
 .search-icon { font-size: 20px; color: #9ca3af; margin-right: 8px; }

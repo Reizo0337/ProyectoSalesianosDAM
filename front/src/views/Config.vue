@@ -55,7 +55,7 @@ async function handleLogout() {
 .profile-card {
   background: white;
   max-width: 600px;
-  border-radius: 16px;
+  border-radius: 4px;
   padding: 32px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
@@ -85,7 +85,7 @@ async function handleLogout() {
   width: 100%;
   height: 44px;
   border: 1.5px solid #e5e7eb;
-  border-radius: 10px;
+  border-radius: 4px;
   background: white;
   color: #ef4444;
   font-weight: 600;

@@ -274,7 +274,7 @@ const formatType = (type: string) => {
   background: none;
   border: 1px solid #e5e7eb;
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: 4px;
   color: #6b7280;
   cursor: pointer;
   font-size: 14px;
@@ -312,7 +312,7 @@ const formatType = (type: string) => {
 
 .status-badge {
   display: inline-flex; align-items: center; padding: 5px 14px;
-  border-radius: 20px; font-size: 13px; font-weight: 600;
+  border-radius: 4px; font-size: 13px; font-weight: 600;
 }
 .status-pendiente { background: #fef9c3; color: #ca8a04; }
 .status-aprobado { background: #dcfce7; color: #16a34a; }
@@ -328,7 +328,7 @@ const formatType = (type: string) => {
 .info-card {
   background: #f9fafb;
   border: 1px solid #e5e7eb;
-  border-radius: 14px;
+  border-radius: 4px;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -340,7 +340,7 @@ const formatType = (type: string) => {
 .section-card {
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  border-radius: 4px;
   padding: 24px;
   margin-bottom: 24px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
@@ -358,7 +358,7 @@ const formatType = (type: string) => {
   margin: 0;
   background: #f9fafb;
   padding: 16px;
-  border-radius: 10px;
+  border-radius: 4px;
   border: 1px solid #f3f4f6;
 }
 
@@ -374,7 +374,7 @@ const formatType = (type: string) => {
 .prod-price { font-weight: 700; color: #1f2937; }
 .proveedor-badge {
   background: #ede9fe; color: #7c3aed; padding: 3px 10px;
-  border-radius: 6px; font-size: 12px; font-weight: 600;
+  border-radius: 4px; font-size: 12px; font-weight: 600;
 }
 .no-prov { color: #9ca3af; font-size: 12px; }
 
@@ -391,7 +391,7 @@ const formatType = (type: string) => {
   padding: 12px 16px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border-radius: 4px;
   transition: all 0.2s;
 }
 
@@ -419,7 +419,7 @@ const formatType = (type: string) => {
   border: none;
   color: #64748b;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -461,7 +461,7 @@ const formatType = (type: string) => {
   width: 100%;
   max-width: 1000px;
   height: 90vh;
-  border-radius: 20px;
+  border-radius: 4px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -497,7 +497,7 @@ const formatType = (type: string) => {
   background: #0f172a;
   color: white;
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 14px;
   font-weight: 600;
   border: none;
@@ -533,7 +533,7 @@ const formatType = (type: string) => {
   min-height: 100px;
   padding: 12px;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border-radius: 4px;
   font-family: inherit;
   font-size: 14px;
   color: #1f2937;
@@ -553,7 +553,7 @@ const formatType = (type: string) => {
   color: white;
   border: none;
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: 4px;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -582,7 +582,7 @@ const formatType = (type: string) => {
   width: 100%;
   padding: 6px 12px;
   border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 14px;
   color: #374151;
   outline: none;
@@ -616,7 +616,7 @@ const formatType = (type: string) => {
   color: #1e293b;
   border: 1px solid #e2e8f0;
   padding: 8px 16px;
-  border-radius: 10px;
+  border-radius: 4px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -648,7 +648,7 @@ const formatType = (type: string) => {
   background: white;
   border: 1.5px solid #e2e8f0;
   padding: 8px 14px;
-  border-radius: 10px;
+  border-radius: 4px;
   color: #475569;
   font-weight: 700;
   font-size: 13px;
@@ -667,7 +667,7 @@ const formatType = (type: string) => {
   color: white;
   border: none;
   padding: 8px 16px;
-  border-radius: 10px;
+  border-radius: 4px;
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
@@ -684,7 +684,7 @@ const formatType = (type: string) => {
   color: #64748b;
   border: none;
   padding: 8px 16px;
-  border-radius: 10px;
+  border-radius: 4px;
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
@@ -701,7 +701,7 @@ const formatType = (type: string) => {
   width: 100%;
   padding: 8px 12px;
   border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 14px;
   font-weight: 600;
   color: #1f2937;
@@ -716,7 +716,7 @@ const formatType = (type: string) => {
   width: 100%;
   padding: 8px 10px;
   border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 14px;
   font-weight: 600;
   color: #1f2937;

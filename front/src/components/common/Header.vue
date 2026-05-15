@@ -214,7 +214,7 @@ onUnmounted(() => {
   height: 40px;
   padding: 0 16px 0 42px;
   border: 1.5px solid #e5e7eb;
-  border-radius: 12px;
+  border-radius: 4px;
   background: #f9fafb;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
@@ -254,7 +254,7 @@ onUnmounted(() => {
   width: 40px;
   height: 40px;
   border: none;
-  border-radius: 10px;
+  border-radius: 4px;
   background: transparent;
   color: #6b7280;
   cursor: pointer;
@@ -278,7 +278,7 @@ onUnmounted(() => {
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  border-radius: 8px;
+  border-radius: 4px;
   background: #dc2626;
   color: #fff;
   font-size: 10px;
@@ -307,7 +307,7 @@ onUnmounted(() => {
   width: 320px;
   background: #fff;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 16px;
+  border-radius: 4px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
   z-index: 200;
   overflow: hidden;
@@ -381,7 +381,7 @@ onUnmounted(() => {
   height: 40px;
   padding: 0 20px;
   border: none;
-  border-radius: 10px;
+  border-radius: 4px;
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   color: #fff;
   font-size: 14px;
@@ -420,7 +420,7 @@ onUnmounted(() => {
   height: 44px;
   padding: 4px 12px 4px 4px;
   border: 1.5px solid #e5e7eb;
-  border-radius: 12px;
+  border-radius: 4px;
   background: #fff;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -436,7 +436,7 @@ onUnmounted(() => {
 .user-avatar {
   width: 34px;
   height: 34px;
-  border-radius: 9px;
+  border-radius: 4px;
   background: linear-gradient(135deg, #dc2626, #f87171);
   display: flex;
   align-items: center;
@@ -489,7 +489,7 @@ onUnmounted(() => {
   min-width: 200px;
   background: #fff;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 14px;
+  border-radius: 4px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
   padding: 6px;
   z-index: 200;
@@ -500,7 +500,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border-radius: 10px;
+  border-radius: 4px;
   color: #374151;
   text-decoration: none;
   font-size: 13px;

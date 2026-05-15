@@ -126,7 +126,7 @@ const zoomOut = () => {
   display: flex;
   flex-direction: column;
   background: #f8fafc;
-  border-radius: 12px;
+  border-radius: 4px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
   width: 100%;
@@ -158,7 +158,7 @@ const zoomOut = () => {
 .tool-btn {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 6px;
   cursor: pointer;
   color: #1e293b;

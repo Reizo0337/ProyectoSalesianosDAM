@@ -102,20 +102,17 @@ onMounted(() => {
 .statistics-card {
   display: flex;
   flex-direction: column;
-  border-radius: 16px;
+  border-radius: 4px;
   padding: 24px;
   background-color: var(--card-bg, #ffffff);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(10px);
 }
 
 .statistics-card:hover {
-  transform: translateY(-5px) scale(1.02);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
 .card-header {
@@ -128,7 +125,7 @@ onMounted(() => {
 .icon-wrapper {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;

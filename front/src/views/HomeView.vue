@@ -151,24 +151,21 @@ const filteredOrdersTable = computed(() => {
           title="Asignado"
           :data="statsByType.presupuesto.total"
           suffix="€"
-          icon="account_balance"
-          background="linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)"
+          background="#0f172a"
         />
         <Card
           type="stats"
           title="Gastado"
           :data="statsByType.presupuesto.spent"
           suffix="€"
-          icon="shopping_cart"
-          background="linear-gradient(135deg, #f43f5e 0%, #e11d48 100%)"
+          background="#1e293b"
         />
         <Card
           type="stats"
           title="Disponible"
           :data="statsByType.presupuesto.remaining"
           suffix="€"
-          icon="account_balance_wallet"
-          background="linear-gradient(135deg, #10b981 0%, #059669 100%)"
+          background="#334155"
         />
       </div>
     </section>
@@ -185,24 +182,21 @@ const filteredOrdersTable = computed(() => {
           title="Inversión Prevista"
           :data="statsByType.planInversion.total"
           suffix="€"
-          icon="rocket_launch"
-          background="linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)"
+          background="#0f172a"
         />
         <Card
           type="stats"
           title="Inversión Ejecutada"
           :data="statsByType.planInversion.spent"
           suffix="€"
-          icon="task_alt"
-          background="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+          background="#1e293b"
         />
         <Card
           type="stats"
           title="Pendiente"
           :data="statsByType.planInversion.remaining"
           suffix="€"
-          icon="hourglass_empty"
-          background="linear-gradient(135deg, #64748b 0%, #475569 100%)"
+          background="#334155"
         />
       </div>
     </section>
@@ -275,7 +269,7 @@ const filteredOrdersTable = computed(() => {
 
 .dept-btn {
   padding: 0.75rem 1.5rem;
-  border-radius: 100px;
+  border-radius: 4px;
   border: 1px solid #e2e8f0;
   background: white;
   color: #64748b;
@@ -305,7 +299,7 @@ const filteredOrdersTable = computed(() => {
   background: #0f172a;
   color: white;
   padding: 0.875rem 1.75rem;
-  border-radius: 16px;
+  border-radius: 4px;
   font-weight: 700;
   border: none;
   cursor: pointer;
@@ -339,7 +333,7 @@ const filteredOrdersTable = computed(() => {
   font-size: 2rem;
   padding: 0.625rem;
   background: #f1f5f9;
-  border-radius: 14px;
+  border-radius: 4px;
 }
 
 .section-header h2 {
@@ -357,10 +351,10 @@ const filteredOrdersTable = computed(() => {
 
 .table-card {
   background: white;
-  border: 1px solid #f1f5f9;
-  border-radius: 28px;
-  padding: 2rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.035);
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   position: relative;
   min-height: 400px;
 }
@@ -377,7 +371,7 @@ const filteredOrdersTable = computed(() => {
   align-items: center;
   justify-content: center;
   z-index: 10;
-  border-radius: 28px;
+  border-radius: 4px;
   backdrop-filter: blur(4px);
 }
 

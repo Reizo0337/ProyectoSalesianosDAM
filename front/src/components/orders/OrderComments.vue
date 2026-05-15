@@ -105,7 +105,7 @@ defineExpose({ fetchComments });
 .comment-bubble {
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border-radius: 4px;
   padding: 12px 16px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
@@ -140,7 +140,7 @@ defineExpose({ fetchComments });
   gap: 12px;
   background: white;
   padding: 8px;
-  border-radius: 12px;
+  border-radius: 4px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
@@ -158,7 +158,7 @@ defineExpose({ fetchComments });
   border: none;
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;

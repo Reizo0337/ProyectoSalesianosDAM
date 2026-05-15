@@ -141,7 +141,7 @@ async function downloadFactura(id: string | number) {
 <style scoped>
 .section-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 4px;
   padding: 24px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   margin-bottom: 24px;
@@ -165,7 +165,7 @@ async function downloadFactura(id: string | number) {
   color: #1e293b;
   border: 1px solid #e2e8f0;
   padding: 8px 16px;
-  border-radius: 10px;
+  border-radius: 4px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -195,7 +195,7 @@ async function downloadFactura(id: string | number) {
   align-items: center;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 4px;
   padding: 12px 16px;
   transition: all 0.2s;
 }
@@ -243,7 +243,7 @@ async function downloadFactura(id: string | number) {
   background: white;
   border: 1px solid #e2e8f0;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: 4px;
   color: #64748b;
   cursor: pointer;
   transition: all 0.2s;
@@ -279,7 +279,7 @@ async function downloadFactura(id: string | number) {
 }
 .preview-modal {
   background: white;
-  border-radius: 16px;
+  border-radius: 4px;
   width: 100%;
   max-width: 1000px;
   height: 90vh;
@@ -319,7 +319,7 @@ async function downloadFactura(id: string | number) {
   background: white;
   border: 1px solid #e2e8f0;
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: 4px;
   color: #475569;
   font-size: 13px;
   font-weight: 600;

@@ -67,7 +67,6 @@ function toggleCollapse() {
               :class="{ active: route.path === item.to }"
               :title="item.label"
             >
-              <span class="material-symbols-outlined nav-icon">{{ item.icon }}</span>
               <span class="nav-text">{{ item.label }}</span>
             </RouterLink>
           </li>
@@ -87,7 +86,6 @@ function toggleCollapse() {
               :class="{ active: route.path === item.to }"
               :title="isCollapsed ? item.label : ''"
             >
-              <span class="material-symbols-outlined nav-icon">{{ item.icon }}</span>
               <span class="nav-text">{{ item.label }}</span>
             </RouterLink>
           </li>
@@ -135,7 +133,7 @@ function toggleCollapse() {
   width: 32px;
   height: 32px;
   border: 1.5px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 4px;
   background: #fff;
   color: #6b7280;
   cursor: pointer;
@@ -215,7 +213,7 @@ function toggleCollapse() {
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 4px;
   color: #4b5563;
   text-decoration: none;
   font-size: 14px;

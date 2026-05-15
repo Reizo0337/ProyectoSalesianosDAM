@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = defineProps<{
   headers: string[]
@@ -68,12 +68,34 @@ const filteredData = computed(() => {
 
   return rows
 })
+
+const currentPage = ref(1)
+const pageSize = 10
+
+const totalPages = computed(() => Math.ceil(filteredData.value.length / pageSize))
+
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  return filteredData.value.slice(start, start + pageSize)
+})
+
+function nextPage() {
+  if (currentPage.value < totalPages.value) currentPage.value++
+}
+
+function prevPage() {
+  if (currentPage.value > 1) currentPage.value--
+}
+
+watch([searchQuery, () => props.data], () => {
+  currentPage.value = 1
+}, { deep: true })
 </script>
 
 <template>
-  <div class="table-wrapper">
-    <!-- Search bar -->
-    <div class="table-toolbar" v-if="searchable">
+  <div class="table-component-container">
+    <!-- Search bar external -->
+    <div class="table-header-external" v-if="searchable">
       <div class="search-box">
         <span class="material-symbols-outlined search-icon">search</span>
         <input
@@ -88,7 +110,7 @@ const filteredData = computed(() => {
       </div>
     </div>
 
-    <!-- Table -->
+    <div class="table-wrapper">
     <div class="table-scroll">
       <table>
         <thead>
@@ -111,12 +133,12 @@ const filteredData = computed(() => {
         </thead>
         <tbody>
           <tr
-            v-for="(row, rIdx) in filteredData"
-            :key="rIdx"
+            v-for="(row, rowIndex) in paginatedData"
+            :key="rowIndex"
             class="table-row"
             :class="{ clickable: !!onRowClick }"
             @click="onRowClick?.(row)"
-            :style="{ animationDelay: `${rIdx * 0.04}s` }"
+            :style="{ animationDelay: `${rowIndex * 0.04}s` }"
           >
             <td v-for="(cell, cIdx) in row" :key="cIdx">
               <!-- ID column styling -->
@@ -171,18 +193,24 @@ const filteredData = computed(() => {
         </tbody>
       </table>
     </div>
+
+    <!-- Pagination -->
+    <div class="pagination-controls" v-if="totalPages > 1">
+      <button @click="prevPage" :disabled="currentPage === 1" class="page-btn">Anterior</button>
+      <span class="page-info">Página {{ currentPage }} de {{ totalPages }}</span>
+      <button @click="nextPage" :disabled="currentPage === totalPages" class="page-btn">Siguiente</button>
+    </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-/* ─── Wrapper ─────────────────────────────────── */
 .table-wrapper {
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 4px;
   border: 1px solid #e5e7eb;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
-  animation: fadeInUp 0.5s ease both;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 @keyframes fadeInUp {
@@ -196,14 +224,16 @@ const filteredData = computed(() => {
   }
 }
 
-/* ─── Toolbar ─────────────────────────────────── */
-.table-toolbar {
+.table-component-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.table-header-external {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f3f4f6;
-  gap: 12px;
 }
 
 .search-box {
@@ -211,9 +241,9 @@ const filteredData = computed(() => {
   align-items: center;
   background: #f9fafb;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border-radius: 4px;
   padding: 0 12px;
-  transition: all 0.25s ease;
+  transition: all 0.2s ease;
   flex: 1;
   max-width: 360px;
 }
@@ -270,20 +300,21 @@ table {
 
 /* ─── Header ──────────────────────────────────── */
 thead {
-  background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%);
+  background: #333333;
+  border-bottom: 2px solid #0f172a;
 }
 
 th {
-  padding: 14px 20px;
+  padding: 14px 16px;
   text-align: left;
   font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
+  font-weight: 700;
+  color: #f8fafc;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   user-select: none;
   white-space: nowrap;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: none;
 }
 
 th.sortable {
@@ -292,7 +323,7 @@ th.sortable {
 }
 
 th.sortable:hover {
-  color: #4f46e5;
+  color: #38bdf8;
 }
 
 .th-content {
@@ -303,19 +334,17 @@ th.sortable:hover {
 
 .sort-icon {
   font-size: 14px;
-  color: #4f46e5;
+  color: #38bdf8;
   transition: transform 0.2s ease;
 }
 
 .sort-icon--idle {
-  color: #d1d5db;
+  color: #64748b;
   font-size: 12px;
 }
 
-/* ─── Body Rows ───────────────────────────────── */
 .table-row {
-  animation: rowSlideIn 0.35s ease both;
-  transition: background-color 0.18s ease;
+  transition: background-color 0.15s ease;
 }
 
 @keyframes rowSlideIn {
@@ -329,8 +358,12 @@ th.sortable:hover {
   }
 }
 
-.table-row:hover {
+.table-row:nth-child(even) {
   background-color: #f8fafc;
+}
+
+.table-row:hover {
+  background-color: #e2e8f0;
 }
 
 .table-row.clickable {
@@ -342,10 +375,11 @@ th.sortable:hover {
 }
 
 td {
-  padding: 16px 20px;
-  font-size: 14px;
-  color: #374151;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #334155;
   white-space: nowrap;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 /* ─── Cell Variants ───────────────────────────── */
@@ -355,7 +389,7 @@ td {
   color: #6366f1;
   background: #eef2ff;
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: 4px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -375,7 +409,7 @@ td {
 .action-btn {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 4px;
   border: 1.5px solid #f3f4f6;
   background: #ffffff;
   display: flex;
@@ -401,17 +435,16 @@ td {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 12px;
-  border-radius: 20px;
+  padding: 4px 10px;
+  border-radius: 4px;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: opacity 0.2s ease;
 }
 
 .status-badge:hover {
-  transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  opacity: 0.85;
 }
 
 .status-icon {
@@ -435,4 +468,14 @@ td {
   font-size: 14px;
   margin-top: 4px;
 }
+
+/* ─── Pagination ──────────────────────────────── */
+.pagination-controls {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-top: 1px solid #e2e8f0; background: #f8fafc;
+}
+.page-info { font-size: 13px; font-weight: 600; color: #475569; }
+.page-btn { padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer; transition: all 0.2s; }
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.page-btn:not(:disabled):hover { background: #f1f5f9; border-color: #94a3b8; }
 </style>

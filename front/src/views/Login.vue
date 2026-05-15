@@ -318,7 +318,7 @@ async function handleLogin() {
   height: 64px;
   width: auto;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 4px;
 }
 
 /* ─── Header ──────────────────────────────────── */
@@ -381,7 +381,7 @@ async function handleLogin() {
   height: 48px;
   padding: 0 48px 0 44px;
   border: 1.5px solid #e5e7eb;
-  border-radius: 12px;
+  border-radius: 4px;
   background: #f9fafb;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
@@ -411,7 +411,7 @@ async function handleLogin() {
   height: 36px;
   border: none;
   background: transparent;
-  border-radius: 8px;
+  border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -452,7 +452,7 @@ async function handleLogin() {
   width: 18px;
   height: 18px;
   border: 1.5px solid #d1d5db;
-  border-radius: 5px;
+  border-radius: 4px;
   background: #fff;
   cursor: pointer;
   transition: all 0.2s;
@@ -498,7 +498,7 @@ async function handleLogin() {
   padding: 12px 16px;
   background-color: #fef2f2;
   border: 1px solid #fecaca;
-  border-radius: 10px;
+  border-radius: 4px;
   color: #dc2626;
   font-size: 13px;
   font-weight: 500;
@@ -525,7 +525,7 @@ async function handleLogin() {
   gap: 10px;
   height: 50px;
   border: none;
-  border-radius: 12px;
+  border-radius: 4px;
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
   color: #fff;
   font-size: 15px;
@@ -596,7 +596,7 @@ async function handleLogin() {
   width: 100%;
   height: 48px;
   border: 1.5px solid #e5e7eb;
-  border-radius: 12px;
+  border-radius: 4px;
   background: #fff;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
