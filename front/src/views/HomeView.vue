@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import Card from '../components/common/Card.vue';
 import OrderTable from '../components/orders/OrderTable.vue';
 import { useAuthStore } from '@/stores/auth';
@@ -13,11 +13,16 @@ const ordenStore = useOrderStore();
 const rolUsuario = computed(() => authStore.user?.rol);
 const selectedDept = ref<string>('Resumen Global');
 
-onMounted(async () => {
+const isAdminOrContable = computed(() => {
+  const rol = authStore.user?.rol;
+  return rol === 'Administrador' || rol === 'Contable';
+});
+
+async function refreshData() {
   const rol = authStore.user?.rol;
   const dep = authStore.user?.idDepartamento;
 
-  if (rol === 'Administrador') {
+  if (rol === 'Administrador' || rol === 'Contable') {
     await presupuestoStore.getAllPresupuestos();
     await ordenStore.getAllOrders();
   } else if (dep) {
@@ -29,16 +34,24 @@ onMounted(async () => {
       selectedDept.value = presupuestoStore.presupuestos[0].nombredepartamento;
     }
   } 
-});
+}
+
+watch(() => authStore.user, (user) => {
+  if (user) {
+    refreshData();
+  }
+}, { immediate: true });
+
 
 const uniqueDepartments = computed(() => {
   const depts = presupuestoStore.presupuestos.map(p => p.nombredepartamento).filter(Boolean);
   const setDepts = [...new Set(depts)];
-  if (rolUsuario.value === 'Administrador') {
+  if (isAdminOrContable.value) {
     return ['Resumen Global', ...setDepts];
   }
   return setDepts;
 });
+
 
 const filteredBudgets = computed(() => {
   if (selectedDept.value === 'Resumen Global') return presupuestoStore.presupuestos;
@@ -59,8 +72,6 @@ const calculateStats = (list: any[]) => {
 };
 
 const statsByType = computed(() => {
-  console.log('Stats calculation - Data:', filteredBudgets.value);
-  
   const isInvestment = (p: any) => {
     const t = (p.type || p.Type || '').toLowerCase();
     return t === 'planinversion' || t.includes('inversion') || t.includes('plan');
@@ -75,8 +86,6 @@ const statsByType = computed(() => {
   const budgets = filteredBudgets.value.filter(isPresupuesto);
   const investments = filteredBudgets.value.filter(isInvestment);
 
-  console.log('Resulting Groups - Budgets:', budgets.length, 'Investments:', investments.length);
-
   return {
     presupuesto: calculateStats(budgets),
     planInversion: calculateStats(investments),
@@ -86,12 +95,13 @@ const statsByType = computed(() => {
 
 const viewTitle = computed(() => {
   if (selectedDept.value === 'Resumen Global') {
-    return rolUsuario.value === 'Administrador' 
+    return isAdminOrContable.value 
       ? 'Presupuestos: Todos los departamentos' 
       : 'Cargando presupuestos...';
   }
   return `Presupuestos: ${selectedDept.value}`;
 });
+
 
 const filteredOrdersTable = computed(() => {
   let orders = ordenStore.orders || [];
@@ -108,15 +118,16 @@ const filteredOrdersTable = computed(() => {
 
 <template>
   <div class="dashboard-page">
-    <header class="dashboard-header animate-fade-in">
+    <header class="dashboard-header">
       <div class="header-content">
         <h1>{{ viewTitle }}</h1>
         <p class="subtitle">Análisis detallado de recursos y ejecución financiera.</p>
       </div>
     </header>
 
-    <!-- Floating Department Buttons - Only for Admins -->
-    <div v-if="rolUsuario === 'Administrador'" class="dept-selector animate-fade-in" style="animation-delay: 0.1s">
+    <!-- Floating Department Buttons - Only for Admins and Contables -->
+    <div v-if="isAdminOrContable" class="dept-selector">
+
       <button 
         v-for="dept in uniqueDepartments" 
         :key="dept"
@@ -129,7 +140,7 @@ const filteredOrdersTable = computed(() => {
     </div>
 
     <!-- 1. Presupuestos Summary -->
-    <section class="dashboard-section animate-fade-in" style="animation-delay: 0.2s">
+    <section class="dashboard-section">
       <div class="section-header">
         <span class="material-symbols-outlined">payments</span>
         <h2>Presupuestos Ordinarios</h2>
@@ -163,7 +174,7 @@ const filteredOrdersTable = computed(() => {
     </section>
 
     <!-- 2. Plan de Inversión Summary -->
-    <section class="dashboard-section animate-fade-in" style="animation-delay: 0.3s">
+    <section class="dashboard-section">
       <div class="section-header">
         <span class="material-symbols-outlined">trending_up</span>
         <h2>Planes de Inversión</h2>
@@ -197,10 +208,11 @@ const filteredOrdersTable = computed(() => {
     </section>
 
     <!-- 4. Permanent Intel (Orders Table - Now Outside) -->
-    <section class="dashboard-section animate-fade-in" style="animation-delay: 0.6s">
+    <section class="dashboard-section">
       <div class="section-header">
         <span class="material-symbols-outlined">shopping_bag</span>
-        <h2>{{ rolUsuario === 'Administrador' ? 'Registro Global de Órdenes' : 'Órdenes de Compra' }}</h2>
+        <h2>{{ isAdminOrContable ? 'Registro Global de Órdenes' : 'Órdenes de Compra' }}</h2>
+
       </div>
       <div class="table-card">
         <div v-if="ordenStore.loading" class="loading-overlay">
@@ -383,12 +395,5 @@ const filteredOrdersTable = computed(() => {
   to { transform: rotate(360deg); }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 
-.animate-fade-in {
-  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
 </style>

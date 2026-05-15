@@ -296,6 +296,11 @@ public class Orders {
                         oldAmount = rs.getDouble("Cantidad");
                         status = rs.getString("Estado");
                         budgetId = rs.getInt("idPresupuesto");
+                        if ("Cerrada".equalsIgnoreCase(status)) {
+                            return JsonUtil.errorJson("La orden está cerrada y no se puede modificar.");
+                        }
+                    } else {
+                        return JsonUtil.errorJson("Orden no encontrada.");
                     }
                 }
             }
@@ -379,6 +384,9 @@ public class Orders {
                         oldStatus = rs.getString("Estado");
                         amount = rs.getDouble("Cantidad");
                         budgetId = rs.getInt("idPresupuesto");
+                        if ("Cerrada".equalsIgnoreCase(oldStatus)) {
+                            return JsonUtil.errorJson("La orden ya está cerrada y su estado no se puede modificar.");
+                        }
                     } else {
                         return JsonUtil.errorJson("Orden no encontrada");
                     }
@@ -463,15 +471,46 @@ public class Orders {
         }
     }
 
-    public void addInvoice(long orderId, byte[] fileData) {
-        String sql = "INSERT INTO facturas (idOrdenCompra, blobFactura) VALUES (?, ?)";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setLong(1, orderId);
-            stmt.setBytes(2, fileData);
-            stmt.executeUpdate();
+    public boolean addInvoice(long orderId, byte[] fileData) {
+        String sqlCheck = "SELECT Estado FROM ordencompra WHERE idOrden = ?";
+        String sqlInsert = "INSERT INTO facturas (idOrdenCompra, blobFactura) VALUES (?, ?)";
+        String sqlUpdate = "UPDATE ordencompra SET Estado = 'Cerrada' WHERE idOrden = ?";
+        try (Connection conn = DatabaseManager.getConnection("webapp")) {
+            // Check status first
+            try (PreparedStatement stmtCheck = conn.prepareStatement(sqlCheck)) {
+                stmtCheck.setLong(1, orderId);
+                try (ResultSet rs = stmtCheck.executeQuery()) {
+                    if (rs.next() && "Cerrada".equalsIgnoreCase(rs.getString("Estado"))) {
+                        return false;
+                    }
+                }
+            }
+            
+            boolean originalAutoCommit = conn.getAutoCommit();
+            try (PreparedStatement stmtInsert = conn.prepareStatement(sqlInsert);
+                 PreparedStatement stmtUpdate = conn.prepareStatement(sqlUpdate)) {
+                 
+                conn.setAutoCommit(false);
+                
+                stmtInsert.setLong(1, orderId);
+                stmtInsert.setBytes(2, fileData);
+                stmtInsert.executeUpdate();
+                
+                stmtUpdate.setLong(1, orderId);
+                stmtUpdate.executeUpdate();
+                
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                LOGGER.log(Level.SEVERE, "Error in transaction adding invoice", e);
+                return false;
+            } finally {
+                conn.setAutoCommit(originalAutoCommit);
+            }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error adding invoice to order", e);
+            LOGGER.log(Level.SEVERE, "Error obtaining connection for adding invoice", e);
+            return false;
         }
     }
 

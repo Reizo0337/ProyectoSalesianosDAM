@@ -19,6 +19,7 @@ const statusStyles: Record<string, { bg: string; color: string; icon: string }> 
   'pendiente':  { bg: '#fef9c3', color: '#ca8a04', icon: 'schedule' },
   'rechazado':  { bg: '#fee2e2', color: '#dc2626', icon: 'cancel' },
   'en proceso': { bg: '#dbeafe', color: '#2563eb', icon: 'autorenew' },
+  'cerrada':    { bg: '#fee2e2', color: '#dc2626', icon: 'lock' },
 }
 
 function getStatusStyle(value: string) {

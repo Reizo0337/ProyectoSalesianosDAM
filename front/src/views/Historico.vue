@@ -8,7 +8,7 @@ const authStore = useAuthStore();
 const orderStore = useOrderStore();
 
 const currentYear = new Date().getFullYear();
-const selectedYear = ref(currentYear - 1);
+const selectedYear = ref(currentYear);
 const years = ref<number[]>([]);
 const searchQuery = ref('');
 
@@ -24,19 +24,27 @@ const filteredOrders = computed(() => {
 });
 
 async function refreshOrders() {
-  const dept = authStore.user?.rol === 'Administrador' ? 'Admin' : authStore.user?.idDepartamento;
+  const role = authStore.user?.rol;
+  const dept = (role === 'Administrador' || role === 'Contable') ? 'Admin' : authStore.user?.idDepartamento;
   if (dept) {
     await orderStore.getOrdersByDept(dept, selectedYear.value);
   }
 }
 
-onMounted(async () => {
-  years.value = await orderStore.fetchYears();
-  // Ensure the default year is in the list or add it
-  if (years.value.length === 0) years.value = [currentYear, currentYear - 1];
-  
-  await refreshOrders();
-});
+watch(() => authStore.user, async (user) => {
+    if (user) {
+      years.value = await orderStore.fetchYears();
+      if (years.value.length === 0) years.value = [currentYear, currentYear - 1];
+      
+      // Select first year available
+      if (years.value.length > 0) {
+        selectedYear.value = years.value[0];
+      }
+      
+      await refreshOrders();
+    }
+}, { immediate: true });
+
 
 watch(selectedYear, () => {
   refreshOrders();
@@ -52,10 +60,15 @@ watch(selectedYear, () => {
       </div>
       
       <div class="year-selector">
-        <label>Año:</label>
-        <select v-model="selectedYear" class="year-select">
-          <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-        </select>
+        <label>Año de Ejercicio</label>
+        <div class="select-wrapper">
+          <select v-model="selectedYear" class="year-select">
+            <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+          </select>
+          <svg class="select-icon" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
       </div>
     </div>
 
@@ -93,14 +106,31 @@ watch(selectedYear, () => {
 .header-section p { color: #6b7280; }
 
 .year-selector {
-  display: flex; align-items: center; gap: 12px;
-  background: white; padding: 8px 16px; border-radius: 12px;
-  border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  display: flex; align-items: center; gap: 16px;
+  background: #f8fafc; padding: 12px 20px; border-radius: 16px;
+  border: 1px solid #e2e8f0;
 }
-.year-selector label { font-weight: 600; color: #4b5563; font-size: 14px; }
+.year-selector label { font-weight: 700; color: #64748b; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
 .year-select {
-  border: 1px solid #d1d5db; border-radius: 6px; padding: 4px 8px;
-  font-size: 15px; font-weight: 600; color: #111827; outline: none;
+  appearance: none; -webkit-appearance: none;
+  background: white; border: 2px solid #cbd5e1; border-radius: 10px;
+  padding: 10px 42px 10px 16px; font-size: 16px; font-weight: 700; color: #334155;
+  cursor: pointer; transition: all 0.2s ease; min-width: 140px; outline: none;
+}
+.year-select:hover, .year-select:focus {
+  border-color: #3b82f6; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+.select-icon {
+  position: absolute; right: 14px; pointer-events: none; color: #64748b; transition: transform 0.2s ease, color 0.2s ease;
+}
+.year-select:focus + .select-icon {
+  transform: rotate(180deg); color: #3b82f6;
 }
 
 .table-card {

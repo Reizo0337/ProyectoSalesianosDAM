@@ -19,7 +19,6 @@ export const usePresupuestoStore = defineStore('presupuesto', {
         async getAllPresupuestos() {
             try {
                 const response = await api.get('/presupuestos/all');
-                console.log('All Presupuestos Response:', response.data);
                 if (response.data.status === 'success') {
                     this.presupuestos = response.data.presupuestos;
                 }
@@ -30,7 +29,6 @@ export const usePresupuestoStore = defineStore('presupuesto', {
         async getPresupuestosByDept(nombreDepartamento: string) {
             try {
                 const response = await api.post('/presupuestos', { nombreDepartamento });
-                console.log('Presupuestos by Dept Response:', response.data);
                 if (response.data.status === 'success') {
                     this.presupuestos = response.data.presupuestos;
                 }

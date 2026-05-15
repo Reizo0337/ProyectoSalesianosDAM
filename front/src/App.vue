@@ -10,9 +10,8 @@ const authStore = useAuthStore()
 
 const showLayout = computed(() => !route.meta.hideLayout)
 
-onMounted(() => {
-  authStore.checkAuth()
-})
+// Auth check is handled by router guard in router/index.ts
+
 </script>
 
 <template>

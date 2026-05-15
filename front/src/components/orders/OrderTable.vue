@@ -58,7 +58,15 @@ function formatDate(dateStr: string) {
           <td><span class="cell-price">{{ order.cantidad }}€</span></td>
           <td>
             <span class="status-badge" :class="'status-' + (order.estado || 'pendiente').toLowerCase()">
-              {{ order.estado }}
+              <svg v-if="(order.estado || 'pendiente').toLowerCase() === 'cerrada'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" style="margin-right: 4px;">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <svg v-else-if="(order.estado || 'pendiente').toLowerCase() === 'pendiente'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" style="margin-right: 4px;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              {{ order.estado || 'Pendiente' }}
             </span>
           </td>
           <td>
@@ -89,6 +97,7 @@ td { padding: 16px 20px; font-size: 14px; color: #374151; }
 .status-pendiente { background: #fef9c3; color: #ca8a04; }
 .status-aprobado { background: #dcfce7; color: #16a34a; }
 .status-rechazado { background: #fee2e2; color: #dc2626; }
+.status-cerrada { background: #fee2e2; color: #dc2626; }
 .factura-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
 .has-factura { background: #dcfce7; color: #16a34a; }
 .no-factura { background: #f3f4f6; color: #9ca3af; }

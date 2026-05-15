@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, computed, ref } from 'vue';
+import { onMounted, computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useOrderStore } from '@/stores/orders';
@@ -29,19 +29,26 @@ const filteredOrders = computed(() => {
   );
 });
 
-
-
 async function refreshOrders() {
-  const dept = authStore.user?.rol === 'Administrador' ? 'Admin' : authStore.user?.idDepartamento;
+  const role = authStore.user?.rol;
+  // Admin and Contable see everything (passing 'Admin' as dept triggers this in backend)
+  const dept = (role === 'Administrador' || role === 'Contable') 
+    ? 'Admin' 
+    : authStore.user?.idDepartamento;
+    
   if (dept) {
     const currentYear = new Date().getFullYear();
     await orderStore.getOrdersByDept(dept, currentYear);
   }
 }
 
-onMounted(async () => {
-  await refreshOrders();
-});
+// Watch for user to be available (handles F5/refresh issues)
+watch(() => authStore.user, (user) => {
+  if (user) {
+    refreshOrders();
+  }
+}, { immediate: true });
+
 </script>
 
 <template>

@@ -26,8 +26,6 @@ export const useAuthStore = defineStore('auth', {
           password,
         });
 
-        console.log('Login Response:', response.data);
-
         if (response.data.status === 'success') {
           this.isAuthenticated = true;
           this.user = { 
@@ -52,7 +50,6 @@ export const useAuthStore = defineStore('auth', {
     async checkAuth() {
       try {
         const response = await api.get('/me');
-        console.log('CheckAuth Response:', response.data);
         if (response.data.status === 'success') {
           this.isAuthenticated = true;
           this.user = {

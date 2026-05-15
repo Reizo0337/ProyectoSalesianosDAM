@@ -12,13 +12,13 @@ const authStore = useAuthStore();
 const orderStore = useOrderStore();
 const presupuestoStore = usePresupuestoStore();
 
+import OrderComments from '../components/orders/OrderComments.vue';
+import OrderInvoices from '../components/orders/OrderInvoices.vue';
+
 const detail = ref<any>(null);
 const loading = ref(true);
 const previewUrl = ref<string | null>(null);
 const description = ref('');
-const comments = ref<any[]>([]);
-const newComment = ref('');
-const sendingComment = ref(false);
 
 const isEditing = ref(false);
 const editForm = ref({
@@ -65,6 +65,7 @@ async function handleUpdate() {
 const canEdit = computed(() => {
   const user = authStore.user;
   if (!user || !detail.value) return false;
+  if ((detail.value.order.estado || '').toLowerCase() === 'cerrada') return false;
   
   if (user.rol === 'Administrador') return true;
   if (user.rol === 'Jefe de Equipo') {
@@ -78,35 +79,22 @@ const canComment = computed(() => {
   return rol === 'Administrador' || rol === 'Contable' || rol === 'Jefe de Equipo';
 });
 
-function openPreview(id: string | number) {
-  previewUrl.value = `http://localhost:8080/backend/api/facturas/view?id=${id}`;
-}
+const canManageInvoices = computed(() => {
+  const rol = authStore.user?.rol;
+  if (detail.value && (detail.value.order.estado || '').toLowerCase() === 'cerrada') return false;
+  return rol === 'Administrador' || rol === 'Contable';
+});
 
-function closePreview() {
-  previewUrl.value = null;
-}
-
-async function fetchComments() {
+async function refreshDetail() {
   const id = route.params.id as string;
-  comments.value = await orderStore.fetchComments(id);
-}
-
-async function postComment() {
-  if (!newComment.value.trim()) return;
-  sendingComment.value = true;
-  try {
-    const id = route.params.id as string;
-    const res = await orderStore.addComment(id, newComment.value);
-    if (res.status === 'success') {
-      newComment.value = '';
-      await fetchComments();
-    }
-  } catch (err) {
-    alert('Error al añadir comentario');
-  } finally {
-    sendingComment.value = false;
+  const data = await orderStore.fetchOrderDetail(id);
+  if (data) {
+    detail.value = data;
+    description.value = data.order.descripcion || '';
   }
 }
+
+// Comment fetching moved to OrderComments.vue
 
 onMounted(async () => {
   const id = route.params.id as string;
@@ -114,7 +102,6 @@ onMounted(async () => {
   if (data) {
     detail.value = data;
     description.value = data.order.descripcion || '';
-    await fetchComments();
     await presupuestoStore.getAllPresupuestos();
   }
   loading.value = false;
@@ -131,24 +118,6 @@ const formatType = (type: string) => {
   }
   return 'Presupuesto';
 };
-async function downloadFactura(id: string | number) {
-  try {
-    const url = `http://localhost:8080/backend/api/facturas/view?id=${id}&action=download`;
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.setAttribute('download', `factura_${id}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(blobUrl);
-  } catch (err) {
-    console.error('Error al descargar factura:', err);
-    alert('No se pudo descargar la factura');
-  }
-}
 </script>
 
 <template>
@@ -174,7 +143,15 @@ async function downloadFactura(id: string | number) {
              <input v-else v-model="editForm.descripcion" class="edit-desc-input" placeholder="Descripción de la orden..." />
           </div>
           <span class="status-badge" :class="'status-' + (detail.order.estado || 'pendiente').toLowerCase()">
-            {{ detail.order.estado }}
+            <svg v-if="(detail.order.estado || 'pendiente').toLowerCase() === 'cerrada'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" style="margin-right: 4px;">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <svg v-else-if="(detail.order.estado || 'pendiente').toLowerCase() === 'pendiente'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" style="margin-right: 4px;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            {{ detail.order.estado || 'Pendiente' }}
           </span>
         </div>
         <div class="header-right">
@@ -237,39 +214,8 @@ async function downloadFactura(id: string | number) {
         </div>
       </div>
 
-      <!-- Sistema de Observaciones (Comentarios) -->
-      <div class="section-card observations-section">
-        <h2>Observaciones de la Orden</h2>
-        <div class="comments-list">
-          <div v-if="comments.length === 0" class="empty-comments">
-            <p>No hay observaciones registradas.</p>
-          </div>
-          <div v-for="comment in comments" :key="comment.idComentario" class="comment-bubble">
-            <div class="comment-header">
-              <span class="comment-user">{{ comment.usuario }}</span>
-              <span class="comment-date">{{ comment.fecha }}</span>
-            </div>
-            <div class="comment-text">{{ comment.comentario }}</div>
-          </div>
-        </div>
-
-        <div v-if="canComment" class="add-comment-box">
-          <input 
-            v-model="newComment" 
-            type="text" 
-            placeholder="Añadir una observación..." 
-            @keyup.enter="postComment"
-            :disabled="sendingComment"
-          />
-          <button @click="postComment" :disabled="sendingComment || !newComment.trim()" class="send-btn">
-            <svg v-if="!sendingComment" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-            <span v-else class="loader-mini"></span>
-          </button>
-        </div>
-      </div>
+      <!-- Componente de Comentarios Extraído -->
+      <OrderComments ref="commentsRef" :orderId="detail.order.idorden" :canComment="canComment" />
 
       <!-- Productos -->
       <div class="section-card">
@@ -298,61 +244,18 @@ async function downloadFactura(id: string | number) {
         <p v-else class="empty-text">No hay productos asociados a esta orden.</p>
       </div>
 
-      <!-- Facturas -->
-      <div class="section-card">
-        <h2>Facturas</h2>
-        <div v-if="detail.facturas && detail.facturas.length > 0" class="facturas-list">
-          <div v-for="fac in detail.facturas" :key="fac.idfactura" class="factura-item">
-            <div class="factura-main" @click="openPreview(fac.idfactura)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-              </svg>
-              <div class="factura-info">
-                <span class="factura-name">Factura #{{ fac.idfactura }}</span>
-                <span class="factura-date">{{ fac.fechacreacion }}</span>
-              </div>
-              <span class="view-hint">Ver PDF</span>
-            </div>
-            <button @click="downloadFactura(fac.idfactura)" class="list-download-btn" title="Descargar PDF">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <p v-else class="empty-text">No hay facturas adjuntas.</p>
-      </div>
+      <!-- Componente de Facturas Extraído -->
+      <OrderInvoices 
+        :orderId="detail.order.idorden" 
+        :facturas="detail.facturas" 
+        :canManageInvoices="canManageInvoices" 
+        @uploaded="refreshDetail" 
+      />
 
     </div>
 
     <div v-else-if="!loading" class="error-state">
       <p>No se pudo cargar el detalle de la orden.</p>
-    </div>
-
-    <!-- PDF Preview Overlay -->
-    <div v-if="previewUrl" class="preview-overlay" @click.self="closePreview">
-      <div class="preview-modal">
-        <div class="preview-header">
-          <h3>Vista Previa: Factura</h3>
-          <div class="header-actions">
-            <button @click="downloadFactura(previewUrl.split('id=')[1].split('&')[0])" class="download-btn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4a2 2 0 0 1 2-2h14" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Descargar PDF
-            </button>
-            <button class="close-modal-btn" @click="closePreview">&times;</button>
-          </div>
-        </div>
-        <div class="preview-body">
-          <PdfPreview :pdfUrl="previewUrl" />
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -414,6 +317,7 @@ async function downloadFactura(id: string | number) {
 .status-pendiente { background: #fef9c3; color: #ca8a04; }
 .status-aprobado { background: #dcfce7; color: #16a34a; }
 .status-rechazado { background: #fee2e2; color: #dc2626; }
+.status-cerrada { background: #fee2e2; color: #dc2626; }
 
 .info-grid {
   display: grid;
@@ -661,115 +565,7 @@ async function downloadFactura(id: string | number) {
   transform: translateY(-1px);
 }
 
-/* Comments Section */
-.comments-section {
-  background: #f8fafc !important;
-}
-
-.comments-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 20px;
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 8px;
-}
-
-.comment-bubble {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 12px 16px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.comment-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.comment-user {
-  font-weight: 700;
-  font-size: 13px;
-  color: #1e293b;
-}
-
-.comment-date {
-  font-size: 11px;
-  color: #94a3b8;
-}
-
-.comment-text {
-  font-size: 14px;
-  color: #334155;
-  line-height: 1.5;
-}
-
-.empty-comments {
-  text-align: center;
-  padding: 20px;
-  color: #94a3b8;
-  font-style: italic;
-  font-size: 14px;
-}
-
-.add-comment-box {
-  display: flex;
-  gap: 12px;
-  background: white;
-  padding: 8px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
-.add-comment-box input {
-  flex: 1;
-  border: none;
-  padding: 8px 12px;
-  font-size: 14px;
-  outline: none;
-  background: transparent;
-}
-
-.send-btn {
-  background: #2563eb;
-  color: white;
-  border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.send-btn:hover:not(:disabled) {
-  background: #1d4ed8;
-  transform: scale(1.05);
-}
-
-.send-btn:disabled {
-  background: #94a3b8;
-  cursor: not-allowed;
-}
-
-.loader-mini {
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 50%;
-  border-top-color: white;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+/* Comments CSS moved to OrderComments.vue */
 
 .description-area {
   margin-bottom: 12px;
@@ -799,9 +595,51 @@ async function downloadFactura(id: string | number) {
 .header-actions-inline {
   display: flex;
   gap: 12px;
-  align-items: center;
-  margin-right: 24px;
 }
+
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-header-row h2 {
+  margin: 0;
+}
+
+.upload-label-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upload-label-btn:hover:not(.disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.upload-label-btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.upload-label-btn svg {
+  color: #64748b;
+}
+
+
+
 
 .edit-info-btn {
   display: inline-flex;

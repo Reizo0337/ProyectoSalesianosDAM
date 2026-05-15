@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
 import { useSupplierStore, type Supplier } from '@/stores/suppliers';
 import Table from '../components/common/Table.vue';
 import { useRouter } from 'vue-router';
-
 import { useAuthStore } from '@/stores/auth';
 
 const supplierStore = useSupplierStore();
@@ -27,9 +26,12 @@ const canManage = computed(() => {
   return rol === 'Administrador' || rol === 'Jefe de Equipo';
 });
 
-onMounted(async () => {
-  await supplierStore.fetchSuppliers();
-});
+watch(() => authStore.user, (user) => {
+  if (user) {
+    supplierStore.fetchSuppliers();
+  }
+}, { immediate: true });
+
 
 function openCreate() {
   if (!canManage.value) return;

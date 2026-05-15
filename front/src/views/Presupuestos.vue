@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { usePresupuestoStore } from '@/stores/presupuesto';
 import Table from '../components/common/Table.vue';
@@ -17,13 +17,16 @@ const formatType = (type: string) => {
   return 'Presupuesto';
 };
 
-onMounted(async () => {
-  if (authStore.user?.rol === 'Administrador') {
-    await presupuestoStore.getAllPresupuestos();
-  } else if (authStore.user?.idDepartamento) {
-    await presupuestoStore.getPresupuestosByDept(authStore.user.idDepartamento);
+watch(() => authStore.user, (user) => {
+  if (user) {
+    if (user.rol === 'Administrador' || user.rol === 'Contable') {
+      presupuestoStore.getAllPresupuestos();
+    } else if (user.idDepartamento) {
+      presupuestoStore.getPresupuestosByDept(user.idDepartamento);
+    }
   }
-});
+}, { immediate: true });
+
 </script>
 
 <template>

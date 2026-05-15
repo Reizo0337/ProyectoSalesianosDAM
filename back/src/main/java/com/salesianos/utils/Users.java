@@ -25,8 +25,13 @@ public class Users {
             stmt.setString(1, nombre);
             stmt.setString(2, apellidos);
             stmt.setString(3, email);
-            stmt.setString(4, password);
+            
+            // Criptar contraseña antes de enviar a DB
+            String hashedPassword = PasswordUtil.hashPassword(password);
+            stmt.setString(4, hashedPassword);
+            
             stmt.setString(5, telefono);
+
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
