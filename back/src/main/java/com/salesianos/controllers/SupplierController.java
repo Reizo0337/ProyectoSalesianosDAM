@@ -18,9 +18,9 @@ public class SupplierController {
     private final SupplierService supplierService = new SupplierService();
 
     public String handle(HttpServletRequest request, HttpServletResponse response, String path, HttpSession session) throws IOException {
-        if (!"/proveedores".equals(path)) {
+        if (!path.startsWith("/proveedores")) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return JsonUtil.errorJson("Ruta de proveedores no encontrada");
+            return JsonUtil.errorJson("Ruta de proveedores no encontrada: " + path);
         }
         return handleSuppliers(request, response, session);
     }

@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth';
 import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toastification';
 
+const toast = useToast();
 const authStore = useAuthStore();
 const router = useRouter();
 
 async function handleLogout() {
   await authStore.logout();
+  toast.info('Sesión cerrada correctamente');
   router.push('/login');
 }
 </script>

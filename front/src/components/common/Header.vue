@@ -3,7 +3,9 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useOrderStore } from '@/stores/orders';
 import { useRouter } from 'vue-router';
+import { useToast } from 'vue-toastification';
 
+const toast = useToast();
 const authStore = useAuthStore();
 const orderStore = useOrderStore();
 const router = useRouter();
@@ -32,7 +34,19 @@ async function handleLogout() {
 
 async function fetchNotifications() {
   if (authStore.isAuthenticated) {
-    notifications.value = await orderStore.fetchNotifications();
+    const newNotifs = await orderStore.fetchNotifications();
+    
+    // Si hay notificaciones nuevas que no estaban antes, avisar con Toast
+    if (newNotifs.length > notifications.value.length) {
+      const latest = newNotifs[0]; // Asumiendo que las nuevas vienen primero
+      if (latest && (latest.leida === 'false' || latest.leida === false)) {
+        toast.info(latest.mensaje, {
+          onClick: () => markAsRead(latest)
+        });
+      }
+    }
+    
+    notifications.value = newNotifs;
   }
 }
 
@@ -47,7 +61,7 @@ async function markAsRead(notif: any) {
 
 onMounted(() => {
   fetchNotifications();
-  notifInterval = setInterval(fetchNotifications, 30000); // Check every 30s
+  notifInterval = setInterval(fetchNotifications, 3000); // Polling cada 3s para notificaciones casi instantáneas
 });
 
 onUnmounted(() => {
@@ -156,16 +170,15 @@ onUnmounted(() => {
   right: 0;
   z-index: 100;
   height: 64px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: #0f172a; /* Azul oscuro profundo (Slate 900) */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
   font-family: 'Inter', sans-serif;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  color: #f8fafc;
 }
 
 /* ── Logo ── */
@@ -176,10 +189,13 @@ onUnmounted(() => {
   min-width: 200px;
 }
 .logo-img {
-  height: 36px;
+  height: 40px;
   width: auto;
   object-fit: contain;
   transition: transform 0.2s ease;
+  /* Truco para hacer el logo blanco y transparente sobre fondo oscuro */
+  filter: grayscale(1) invert(1) brightness(2);
+  mix-blend-mode: screen;
 }
 
 .logo-img:hover {
@@ -305,10 +321,10 @@ onUnmounted(() => {
   top: calc(100% + 8px);
   right: 0;
   width: 320px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 4px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
   z-index: 200;
   overflow: hidden;
 }
@@ -317,9 +333,9 @@ onUnmounted(() => {
   padding: 14px 18px;
   font-weight: 700;
   font-size: 14px;
-  color: #1f2937;
-  border-bottom: 1px solid #f3f4f6;
-  background: #f9fafb;
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .notif-list {
@@ -329,18 +345,18 @@ onUnmounted(() => {
 
 .notif-item {
   padding: 14px 18px;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
 }
 
 .notif-item:hover {
-  background: #f8fafc;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .notif-item.unread {
-  background: #f0f7ff;
+  background: rgba(59, 130, 246, 0.05);
 }
 
 .notif-item.unread::after {
@@ -356,20 +372,20 @@ onUnmounted(() => {
 
 .notif-msg {
   font-size: 13px;
-  color: #374151;
+  color: #cbd5e1;
   margin: 0 0 4px;
   line-height: 1.4;
 }
 
 .notif-time {
   font-size: 11px;
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .notif-empty {
   padding: 32px;
   text-align: center;
-  color: #94a3b8;
+  color: #64748b;
   font-size: 14px;
 }
 
@@ -419,18 +435,19 @@ onUnmounted(() => {
   gap: 10px;
   height: 44px;
   padding: 4px 12px 4px 4px;
-  border: 1.5px solid #e5e7eb;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 4px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: 'Inter', sans-serif;
 }
 
 .user-btn:hover {
-  border-color: #d1d5db;
-  background: #f9fafb;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .user-avatar {
@@ -466,7 +483,7 @@ onUnmounted(() => {
 .user-name {
   font-size: 13px;
   font-weight: 600;
-  color: #1f2937;
+  color: #f8fafc;
 }
 
 .chevron {
@@ -484,73 +501,82 @@ onUnmounted(() => {
 /* ── Dropdown ── */
 .user-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  min-width: 200px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 4px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.04);
-  padding: 6px;
+  top: calc(100% + 10px);
+  right: -24px;
+  width: 260px;
+  background: #0f172a;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0 0 0 12px;
+  box-shadow: -10px 10px 40px rgba(0, 0, 0, 0.5);
+  padding: 8px;
   z-index: 200;
 }
 
 .dropdown-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: 4px;
-  color: #374151;
+  gap: 12px;
+  padding: 8px 12px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
-  transition: all 0.15s ease;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  outline: none;
 }
 
 .dropdown-item svg {
-  width: 16px;
-  height: 16px;
-  color: #6b7280;
+  width: 18px;
+  height: 18px;
+  color: #64748b;
   flex-shrink: 0;
 }
 
 .dropdown-item:hover {
-  background: #f3f4f6;
-  color: #1f2937;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
 }
 
 .dropdown-item:hover svg {
-  color: #dc2626;
+  color: #ef4444;
 }
 
 .dropdown-divider {
   height: 1px;
-  background: #f3f4f6;
-  margin: 4px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  margin: 6px 8px;
 }
 
 .dropdown-item.logout {
-  color: #dc2626;
+  color: #f87171;
 }
 
 .dropdown-item.logout svg {
-  color: #dc2626;
+  color: #f87171;
 }
 
 .dropdown-item.logout:hover {
-  background: #fef2f2;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
 }
 
-/* ── Dropdown transition ── */
+/* ── Dropdown transition (Accordion style) ── */
 .dropdown-enter-active,
 .dropdown-leave-active {
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top right; /* Despliegue desde la esquina superior derecha */
 }
 
 .dropdown-enter-from,
 .dropdown-leave-to {
   opacity: 0;
-  transform: translateY(-8px) scale(0.96);
+  transform: scaleY(0) scaleX(0.95) translateY(-10px);
 }
 </style>

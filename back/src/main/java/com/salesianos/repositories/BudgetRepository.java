@@ -19,10 +19,10 @@ public class BudgetRepository {
         String sql = "SELECT p.*, d.Nombre as nombredepartamento " +
                      "FROM presupuesto p " +
                      "JOIN departamento d ON p.idDepartamento = d.idDepartamento " +
-                     "WHERE p.year = ? " +
+                     "WHERE p.Anio = ? " +
                      "ORDER BY p.idPresupuesto ASC";
 
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, year);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -36,10 +36,27 @@ public class BudgetRepository {
         return budgets;
     }
 
+    public Budget findById(long id) {
+        String sql = "SELECT p.*, d.Nombre as nombredepartamento " +
+                     "FROM presupuesto p " +
+                     "JOIN departamento d ON p.idDepartamento = d.idDepartamento " +
+                     "WHERE p.idPresupuesto = ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, id);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return mapResultSetToBudget(rs);
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error finding budget " + id, e);
+        }
+        return null;
+    }
+
     public List<Integer> getYearsWithBudgets() {
         List<Integer> years = new ArrayList<>();
         String sql = "SELECT DISTINCT Anio FROM presupuesto ORDER BY Anio DESC";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
@@ -58,7 +75,7 @@ public class BudgetRepository {
                      "FROM presupuesto p " +
                      "JOIN departamento d ON p.idDepartamento = d.idDepartamento " +
                      "WHERE d.Nombre = ? AND p.Anio = ?";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, depName);
             stmt.setInt(2, year);
@@ -77,7 +94,7 @@ public class BudgetRepository {
         String sql = "INSERT INTO presupuesto (Codigo, Nombre, Cantidad, Gasto, idDepartamento, Type, Anio) " +
                      "SELECT CONCAT(Codigo, '-', ?), Nombre, Cantidad, 0.00, idDepartamento, Type, ? " +
                      "FROM presupuesto WHERE Anio = ?";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, toYear);
             stmt.setInt(2, toYear);
@@ -91,7 +108,7 @@ public class BudgetRepository {
 
     public boolean updateGasto(long budgetId, double diff) {
         String sql = "UPDATE presupuesto SET Gasto = Gasto + ? WHERE idPresupuesto = ?";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setDouble(1, diff);
             stmt.setLong(2, budgetId);
@@ -105,11 +122,11 @@ public class BudgetRepository {
     private Budget mapResultSetToBudget(ResultSet rs) throws SQLException {
         Budget b = new Budget();
         b.setIdPresupuesto(rs.getLong("idPresupuesto"));
-        b.setCodigo(rs.getString("codigo"));
-        b.setNombrePresupuesto(rs.getString("nombrePresupuesto"));
+        b.setCodigo(rs.getString("Codigo"));
+        b.setNombrePresupuesto(rs.getString("Nombre"));
         b.setCantidad(rs.getDouble("Cantidad"));
         b.setGasto(rs.getDouble("Gasto"));
-        b.setType(rs.getString("type"));
+        b.setType(rs.getString("Type"));
         b.setIdDepartamento(rs.getLong("idDepartamento"));
         b.setNombreDepartamento(rs.getString("nombredepartamento"));
         return b;

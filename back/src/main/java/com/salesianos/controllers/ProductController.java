@@ -15,9 +15,9 @@ public class ProductController {
     private final ProductService productService = new ProductService();
 
     public String handle(HttpServletRequest request, HttpServletResponse response, String path) throws IOException {
-        if (!"/productos".equals(path)) {
+        if (!path.startsWith("/productos")) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return JsonUtil.errorJson("Ruta de productos no encontrada");
+            return JsonUtil.errorJson("Ruta de productos no encontrada: " + path);
         }
         return handleProducts(request, response);
     }

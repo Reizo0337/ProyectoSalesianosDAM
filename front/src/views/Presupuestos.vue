@@ -2,9 +2,11 @@
 import { onMounted, watch, ref, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { usePresupuestoStore } from '@/stores/presupuesto';
+import { useToast } from 'vue-toastification';
 import Table from '../components/common/Table.vue';
 import Card from '../components/common/Card.vue';
 
+const toast = useToast();
 const authStore = useAuthStore();
 const presupuestoStore = usePresupuestoStore();
 
@@ -25,12 +27,16 @@ const formatType = (p: any) => {
 
 const fetchData = async () => {
   const user = authStore.user;
-  if (user) {
-    if (user.rol === 'Administrador' || user.rol === 'Contable') {
-      await presupuestoStore.getAllPresupuestos(selectedYear.value);
-    } else if (user.idDepartamento) {
-      await presupuestoStore.getPresupuestosByDept(user.idDepartamento, selectedYear.value);
+  try {
+    if (user) {
+      if (user.rol === 'Administrador' || user.rol === 'Contable') {
+        await presupuestoStore.getAllPresupuestos(selectedYear.value);
+      } else if (user.idDepartamento) {
+        await presupuestoStore.getPresupuestosByDept(user.idDepartamento, selectedYear.value);
+      }
     }
+  } catch (err) {
+    toast.error('Error al sincronizar presupuestos');
   }
 };
 

@@ -31,6 +31,10 @@ public class AuthController {
 
         User u = authService.login(usuario, password);
         if (u != null) {
+            if (!u.isVerified()) {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                return JsonUtil.errorJson("Tu cuenta está pendiente de verificación por un administrador.");
+            }
             HttpSession session = request.getSession(true);
             session.setAttribute("user", u.toMap());
             return JsonUtil.mapToJson(u.toMap());

@@ -47,6 +47,26 @@ export const useAuthStore = defineStore('auth', {
         this.loading = false;
       }
     },
+    async register(nombre: string, apellidos: string, email: string, password: string, telefono: string) {
+      this.loading = true;
+      this.error = null;
+      try {
+        const response = await api.post('/register', {
+          nombre, apellidos, email, password, telefono
+        });
+        return { 
+          success: true, 
+          message: response.data.message || 'Registro solicitado con éxito' 
+        };
+      } catch (err: any) {
+        return { 
+          success: false, 
+          message: err.response?.data?.message || 'Error al solicitar el registro' 
+        };
+      } finally {
+        this.loading = false;
+      }
+    },
     async checkAuth() {
       try {
         const response = await api.get('/me');

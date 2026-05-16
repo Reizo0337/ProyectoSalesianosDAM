@@ -3,9 +3,11 @@ import { onMounted, computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useOrderStore } from '@/stores/orders';
+import { useToast } from 'vue-toastification';
 import OrderModal from '../components/orders/OrderModal.vue';
 import OrderTable from '../components/orders/OrderTable.vue';
 
+const toast = useToast();
 const router = useRouter();
 const authStore = useAuthStore();
 const orderStore = useOrderStore();
@@ -36,9 +38,13 @@ async function refreshOrders() {
     ? 'Admin' 
     : authStore.user?.idDepartamento;
     
-  if (dept) {
-    const currentYear = new Date().getFullYear();
-    await orderStore.getOrdersByDept(dept, currentYear);
+  try {
+    if (dept) {
+      const currentYear = new Date().getFullYear();
+      await orderStore.getOrdersByDept(dept, currentYear);
+    }
+  } catch (err) {
+    toast.error('Error al sincronizar el listado de órdenes');
   }
 }
 

@@ -1,5 +1,6 @@
 package com.salesianos.repositories;
 
+import com.salesianos.models.Product;
 import com.salesianos.models.Supplier;
 import com.salesianos.utils.DatabaseManager;
 import java.sql.Connection;
@@ -17,7 +18,7 @@ public class SupplierRepository {
     public List<Supplier> findAll() {
         List<Supplier> suppliers = new ArrayList<>();
         String sql = "SELECT * FROM proveedores ORDER BY Nombre ASC";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
@@ -31,7 +32,7 @@ public class SupplierRepository {
 
     public long save(Supplier s) {
         String sql = "INSERT INTO proveedores (Nombre, Telefono, Direccion) VALUES (?, ?, ?)";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, s.getNombre());
             stmt.setString(2, s.getTelefono());
@@ -49,7 +50,7 @@ public class SupplierRepository {
 
     public boolean update(Supplier s) {
         String sql = "UPDATE proveedores SET Nombre=?, Telefono=?, Direccion=? WHERE idProveedor=?";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, s.getNombre());
             stmt.setString(2, s.getTelefono());
@@ -63,7 +64,7 @@ public class SupplierRepository {
     }
 
     public boolean delete(long id) {
-        try (Connection conn = DatabaseManager.getConnection("webapp")) {
+        try (Connection conn = DatabaseManager.getConnection()) {
             // Delete associations first
             String sqlAssoc = "DELETE FROM productosproveedores WHERE idProveedor=?";
             try (PreparedStatement stmt = conn.prepareStatement(sqlAssoc)) {
@@ -84,7 +85,7 @@ public class SupplierRepository {
     public List<Product> getSupplierProducts(long idProveedor) {
         List<Product> products = new ArrayList<>();
         String sql = "SELECT p.* FROM productos p JOIN productosproveedores pp ON p.idProducto = pp.idProducto WHERE pp.idProveedor = ?";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, idProveedor);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -104,7 +105,7 @@ public class SupplierRepository {
 
     public boolean assignProduct(long idProveedor, long idProducto) {
         String sql = "INSERT IGNORE INTO productosproveedores (idProveedor, idProducto) VALUES (?, ?)";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, idProveedor);
             stmt.setLong(2, idProducto);
@@ -117,7 +118,7 @@ public class SupplierRepository {
 
     public boolean removeProduct(long idProveedor, long idProducto) {
         String sql = "DELETE FROM productosproveedores WHERE idProveedor=? AND idProducto=?";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, idProveedor);
             stmt.setLong(2, idProducto);

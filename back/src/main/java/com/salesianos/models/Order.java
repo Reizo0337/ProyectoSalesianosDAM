@@ -14,6 +14,8 @@ public class Order {
     private boolean inversion;
     private long idPresupuesto;
     private String nombreDepartamento; // Campo auxiliar para la vista
+    private int numFacturas; // Contador de facturas
+    private int numComentarios; // Contador de comentarios
 
     public Order() {}
 
@@ -51,6 +53,12 @@ public class Order {
     public String getNombreDepartamento() { return nombreDepartamento; }
     public void setNombreDepartamento(String nombreDepartamento) { this.nombreDepartamento = nombreDepartamento; }
 
+    public int getNumFacturas() { return numFacturas; }
+    public void setNumFacturas(int numFacturas) { this.numFacturas = numFacturas; }
+
+    public int getNumComentarios() { return numComentarios; }
+    public void setNumComentarios(int numComentarios) { this.numComentarios = numComentarios; }
+
     public java.util.Map<String, String> toMap() {
         java.util.Map<String, String> map = new java.util.HashMap<>();
         map.put("idorden", String.valueOf(idOrden));
@@ -63,6 +71,8 @@ public class Order {
         map.put("descripcion", descripcion == null ? "" : descripcion);
         map.put("inversion", String.valueOf(inversion));
         map.put("nombredepartamento", nombreDepartamento == null ? "" : nombreDepartamento);
+        map.put("numfacturas", String.valueOf(numFacturas));
+        map.put("numcomentarios", String.valueOf(numComentarios));
         return map;
     }
 }

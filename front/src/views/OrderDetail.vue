@@ -5,7 +5,9 @@ import { useOrderStore } from '@/stores/orders';
 import { useAuthStore } from '@/stores/auth';
 import PdfPreview from '../components/orders/PdfPreview.vue';
 import { usePresupuestoStore } from '@/stores/presupuesto';
+import { useToast } from 'vue-toastification';
 
+const toast = useToast();
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
@@ -55,10 +57,11 @@ async function handleUpdate() {
       if (updatedData) {
         detail.value = updatedData;
         description.value = updatedData.order.descripcion || '';
+        toast.success('Orden actualizada correctamente');
       }
     }
   } catch (err) {
-    alert('Error al actualizar la orden');
+    toast.error('Error al actualizar la orden');
   }
 }
 
@@ -123,6 +126,14 @@ const formatType = (type: string) => {
   }
   return 'Presupuesto';
 };
+
+// Determina si la orden es de tipo Plan (tiene numero_plan) o de tipo Orden (tiene numero_orden)
+const isPlan = computed(() => {
+  if (!detail.value?.order) return false;
+  const o = detail.value.order;
+  // Es plan si tiene numero_plan y no tiene numero_orden (o está vacío)
+  return !!o.numero_plan && (!o.numero_orden || o.numero_orden.trim() === '');
+});
 </script>
 
 <template>
@@ -142,7 +153,7 @@ const formatType = (type: string) => {
       <!-- Header -->
       <div class="detail-header">
         <div class="header-left">
-          <h1>Orden {{ detail.order.numero_orden }}</h1>
+          <h1>{{ isPlan ? 'Plan' : 'Orden' }} {{ isPlan ? detail.order.numero_plan : detail.order.numero_orden }}</h1>
           <div class="description-area">
              <p v-if="!isEditing" class="header-desc">{{ detail.order.descripcion || 'Sin descripción' }}</p>
              <input v-else v-model="editForm.descripcion" class="edit-desc-input" placeholder="Descripción de la orden..." />
@@ -203,17 +214,23 @@ const formatType = (type: string) => {
              <option value="Invariable">Invariable</option>
           </select>
         </div>
-        <div class="info-card">
+        <!-- Solo muestra Nº Plan si es de tipo Plan -->
+        <div v-if="isPlan" class="info-card">
           <span class="info-label">Nº Plan</span>
-          <span v-if="!isEditing" class="info-value">{{ detail.order.numero_plan || 'N/A' }}</span>
+          <span v-if="!isEditing" class="info-value">{{ detail.order.numero_plan }}</span>
           <input v-else v-model="editForm.numero_plan" type="text" class="edit-input" maxlength="7" placeholder="Ej: 1234567" />
+        </div>
+        <!-- Solo muestra Nº Orden si es de tipo Orden -->
+        <div v-else class="info-card">
+          <span class="info-label">Nº Orden</span>
+          <span class="info-value">{{ detail.order.numero_orden }}</span>
         </div>
         <div class="info-card">
           <span class="info-label">Presupuesto</span>
           <span v-if="!isEditing" class="info-value">{{ detail.order.presupuesto_codigo }} [{{ formatType(detail.order.presupuesto_tipo) }}]</span>
           <select v-else v-model="editForm.idPresupuesto" class="edit-select">
-             <option v-for="p in presupuestoStore.presupuestos.filter(b => b.nombreDepartamento === detail.order.dep_nombre)" :key="p.idPresupuesto" :value="p.idPresupuesto.toString()">
-                {{ p.Codigo }} [{{ formatType(p.type) }}]
+             <option v-for="p in presupuestoStore.presupuestos.filter(b => b.nombredepartamento === detail.order.dep_nombre)" :key="p.idpresupuesto" :value="p.idpresupuesto.toString()">
+                {{ p.codigo }} [{{ formatType(p.type) }}]
              </option>
           </select>
         </div>

@@ -3,12 +3,14 @@ import { onMounted, computed, ref, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useOrderStore } from '@/stores/orders';
 import { usePresupuestoStore } from '@/stores/presupuesto';
+import { useToast } from 'vue-toastification';
 import OrderTable from '../components/orders/OrderTable.vue';
 import Table from '../components/common/Table.vue';
 
 const authStore = useAuthStore();
 const orderStore = useOrderStore();
 const presupuestoStore = usePresupuestoStore();
+const toast = useToast();
 
 const currentYear = new Date().getFullYear();
 const selectedYear = ref(currentYear - 1); // Por defecto un año atrás para el histórico
@@ -56,9 +58,9 @@ async function refreshData() {
 const handleCloneToCurrent = async () => {
   const ok = await presupuestoStore.cloneBudgets(selectedYear.value, currentYear);
   if (ok) {
-    alert(`Presupuestos de ${selectedYear.value} clonados correctamente al año ${currentYear}`);
+    toast.success(`Presupuestos de ${selectedYear.value} clonados correctamente al año ${currentYear}`);
   } else {
-    alert('Error al clonar los presupuestos. Es posible que ya existan presupuestos para el año actual.');
+    toast.error('Error al clonar los presupuestos. Es posible que ya existan presupuestos para el año actual.');
   }
 };
 

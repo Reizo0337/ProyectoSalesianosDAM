@@ -113,6 +113,45 @@ const filteredOrdersTable = computed(() => {
   }
   return orders;
 });
+
+// ── Lógica de Animación de Números (Count Up) ──
+const animatedStats = ref({
+  presupuesto: { remaining: 0, total: 0, spent: 0 },
+  planInversion: { remaining: 0, total: 0, spent: 0 }
+});
+
+function animateValue(parent: any, key: string, target: number) {
+  const start = parent[key];
+  const duration = 1200; // Duración en ms
+  const startTime = performance.now();
+
+  function update(currentTime: number) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // Función de easing (easeOutQuart) para que frene suavemente al final
+    const ease = 1 - Math.pow(1 - progress, 4);
+    
+    parent[key] = start + (target - start) * ease;
+
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    }
+  }
+  requestAnimationFrame(update);
+}
+
+// Observamos statsByType para disparar la animación cuando cambien los datos
+watch(statsByType, (newVal) => {
+  animateValue(animatedStats.value.presupuesto, 'remaining', newVal.presupuesto.remaining);
+  animateValue(animatedStats.value.presupuesto, 'total', newVal.presupuesto.total);
+  animateValue(animatedStats.value.presupuesto, 'spent', newVal.presupuesto.spent);
+  
+  animateValue(animatedStats.value.planInversion, 'remaining', newVal.planInversion.remaining);
+  animateValue(animatedStats.value.planInversion, 'total', newVal.planInversion.total);
+  animateValue(animatedStats.value.planInversion, 'spent', newVal.planInversion.spent);
+}, { deep: true, immediate: true });
+
 </script>
 
 <template>
@@ -151,18 +190,18 @@ const filteredOrdersTable = computed(() => {
            <div class="budget-type-label">Ordinario</div>
            <div class="budget-main">
               <div class="budget-available">
-                 <span class="amount">{{ statsByType.presupuesto.remaining.toLocaleString() }}</span>
+                 <span class="amount">{{ Math.round(animatedStats.presupuesto.remaining).toLocaleString() }}</span>
                  <span class="currency">€</span>
               </div>
               <div class="budget-total">
                  <span class="sep">/</span>
-                 <span class="total-val">{{ statsByType.presupuesto.total.toLocaleString() }}€</span>
+                 <span class="total-val">{{ Math.round(animatedStats.presupuesto.total).toLocaleString() }}€</span>
               </div>
            </div>
            <div class="budget-footer">
               <div class="spent-tag">
                  <span class="label">Gastado</span>
-                 <span class="val">{{ statsByType.presupuesto.spent.toLocaleString() }}€</span>
+                 <span class="val">{{ Math.round(animatedStats.presupuesto.spent).toLocaleString() }}€</span>
               </div>
            </div>
            <div class="progress-bar">
@@ -175,18 +214,18 @@ const filteredOrdersTable = computed(() => {
            <div class="budget-type-label">Plan Inversión</div>
            <div class="budget-main">
               <div class="budget-available">
-                 <span class="amount">{{ statsByType.planInversion.remaining.toLocaleString() }}</span>
+                 <span class="amount">{{ Math.round(animatedStats.planInversion.remaining).toLocaleString() }}</span>
                  <span class="currency">€</span>
               </div>
               <div class="budget-total">
                  <span class="sep">/</span>
-                 <span class="total-val">{{ statsByType.planInversion.total.toLocaleString() }}€</span>
+                 <span class="total-val">{{ Math.round(animatedStats.planInversion.total).toLocaleString() }}€</span>
               </div>
            </div>
            <div class="budget-footer">
               <div class="spent-tag">
                  <span class="label">Ejecutado</span>
-                 <span class="val">{{ statsByType.planInversion.spent.toLocaleString() }}€</span>
+                 <span class="val">{{ Math.round(animatedStats.planInversion.spent).toLocaleString() }}€</span>
               </div>
            </div>
            <div class="progress-bar">

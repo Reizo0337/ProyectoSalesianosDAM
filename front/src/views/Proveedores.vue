@@ -4,7 +4,9 @@ import { useSupplierStore, type Supplier } from '@/stores/suppliers';
 import Table from '../components/common/Table.vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useDialogStore } from '@/stores/dialog';
 
+const dialogStore = useDialogStore();
 const supplierStore = useSupplierStore();
 const authStore = useAuthStore();
 const router = useRouter();
@@ -66,23 +68,33 @@ function openEdit(supplier: any) {
 }
 
 async function handleSubmit() {
-  const data = {
-    Nombre: form.value.nombre,
-    Telefono: form.value.telefono,
-    Direccion: form.value.direccion
-  };
+  try {
+    const data = {
+      Nombre: form.value.nombre,
+      Telefono: form.value.telefono,
+      Direccion: form.value.direccion
+    };
 
-  if (isEditing.value && currentId.value) {
-    await supplierStore.updateSupplier(currentId.value, data);
-  } else {
-    await supplierStore.createSupplier(data);
+    if (isEditing.value && currentId.value) {
+      await supplierStore.updateSupplier(currentId.value, data);
+      toast.success('Proveedor actualizado con éxito');
+    } else {
+      await supplierStore.createSupplier(data);
+      toast.success('Proveedor creado correctamente');
+    }
+    showModal.value = false;
+  } catch (err) {
+    toast.error('Error al procesar la solicitud');
   }
-  showModal.value = false;
 }
 
 async function handleDelete(id: number) {
   if (!canManage.value) return;
-  if (confirm('¿Estás seguro de eliminar este proveedor? Se borrarán sus asociaciones con productos.')) {
+  const confirmed = await dialogStore.confirm(
+    "Eliminar Proveedor",
+    "¿Estás seguro de eliminar este proveedor? Esta acción borrará permanentemente sus asociaciones con productos y catálogos."
+  );
+  if (confirmed) {
     await supplierStore.deleteSupplier(id);
   }
 }

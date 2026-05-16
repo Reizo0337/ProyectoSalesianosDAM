@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import Header from './components/common/Header.vue';
 import Aside from './components/common/Aside.vue';
+import ConfirmDialog from './components/common/ConfirmDialog.vue';
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -21,6 +22,7 @@ const showLayout = computed(() => !route.meta.hideLayout)
     <main class="app-main" :class="{ 'no-layout': !showLayout }">
       <RouterView />
     </main>
+    <ConfirmDialog />
   </div>
 </template>
 
@@ -35,8 +37,8 @@ const showLayout = computed(() => !route.meta.hideLayout)
 
 body {
   font-family: 'Inter', sans-serif;
-  background: #f8f9fb;
-  color: #1f2937;
+  background: #f1f5f9; /* Slate 100 - Más claro para contraste */
+  color: #1e293b;
   overflow-x: hidden;
 }
 
@@ -47,10 +49,10 @@ body {
 .app-main {
   margin-left: 250px;
   margin-top: 64px;
-  padding: 28px;
+  padding: 32px;
   min-height: calc(100vh - 64px);
   transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: #f8f9fb;
+  background: #f1f5f9;
 }
 
 .app-main.no-layout {

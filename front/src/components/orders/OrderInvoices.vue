@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useOrderStore } from '@/stores/orders';
+import { useToast } from 'vue-toastification';
 import PdfPreview from './PdfPreview.vue';
 
+const toast = useToast();
 const props = defineProps<{ 
   orderId: string | number,
   facturas: any[],
@@ -25,12 +27,13 @@ async function handleFileUpload(event: Event) {
   try {
     const res = await orderStore.uploadInvoice(props.orderId, file);
     if (res.status === 'success') {
+      toast.success('Factura subida correctamente');
       emit('uploaded');
     } else {
-      alert(res.message || 'Error al subir la factura');
+      toast.error(res.message || 'Error al subir la factura');
     }
   } catch (err) {
-    alert('Error al subir el archivo');
+    toast.error('Error al subir el archivo');
   } finally {
     isUploading.value = false;
     if (fileInput.value) fileInput.value.value = '';
@@ -60,7 +63,7 @@ async function downloadFactura(id: string | number) {
     window.URL.revokeObjectURL(blobUrl);
   } catch (err) {
     console.error('Error al descargar factura:', err);
-    alert('No se pudo descargar la factura');
+    toast.error('No se pudo descargar la factura. Inténtalo de nuevo.');
   }
 }
 </script>

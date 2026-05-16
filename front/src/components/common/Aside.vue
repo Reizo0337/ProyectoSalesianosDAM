@@ -59,20 +59,46 @@ function toggleCollapse() {
 </script>
 
 <template>
-  <aside class="app-aside">
+  <aside class="app-aside" :class="{ collapsed: isCollapsed }">
     <!-- Main navigation -->
     <nav class="aside-nav">
       <div class="nav-section">
-        <span class="nav-label">MENÚ PRINCIPAL</span>
+        <div class="section-header-sidebar">
+          <span v-if="!isCollapsed" class="nav-label">MENÚ PRINCIPAL</span>
+          <button @click="toggleCollapse" class="toggle-sidebar-btn" :title="isCollapsed ? 'Expandir' : 'Colapsar'">
+            <span class="material-symbols-outlined">
+              {{ isCollapsed ? 'menu_open' : 'menu' }}
+            </span>
+          </button>
+        </div>
+        
         <ul class="nav-list">
           <li v-for="item in menuItems" :key="item.to">
             <RouterLink
               :to="item.to"
               class="nav-item"
               :class="{ active: route.path === item.to }"
-              :title="item.label"
+              :title="isCollapsed ? item.label : ''"
             >
-              <span class="nav-text">{{ item.label }}</span>
+              <!-- Icono solo cuando está colapsado -->
+              <span v-if="isCollapsed" class="material-symbols-outlined nav-icon">
+                {{ item.icon }}
+              </span>
+              <!-- Texto solo cuando NO está colapsado -->
+              <span v-else class="nav-text">{{ item.label }}</span>
+            </RouterLink>
+          </li>
+          
+          <!-- Item especial de Usuarios -->
+          <li v-if="authStore.user?.rol === 'Administrador'">
+            <RouterLink
+              to="/usuarios"
+              class="nav-item"
+              :class="{ active: route.path === '/usuarios' }"
+              :title="isCollapsed ? 'Usuarios' : ''"
+            >
+              <span v-if="isCollapsed" class="material-symbols-outlined nav-icon">group</span>
+              <span v-else class="nav-text">Usuarios</span>
             </RouterLink>
           </li>
         </ul>
@@ -82,7 +108,7 @@ function toggleCollapse() {
     <!-- Bottom section -->
     <div class="aside-bottom">
       <div class="nav-section">
-        <span class="nav-label">SOPORTE</span>
+        <span v-if="!isCollapsed" class="nav-label">SOPORTE</span>
         <ul class="nav-list">
           <li v-for="item in bottomItems" :key="item.to" >
             <RouterLink
@@ -91,14 +117,16 @@ function toggleCollapse() {
               :class="{ active: route.path === item.to }"
               :title="isCollapsed ? item.label : ''"
             >
-              <span class="nav-text">{{ item.label }}</span>
+              <span v-if="isCollapsed" class="material-symbols-outlined nav-icon">
+                {{ item.icon }}
+              </span>
+              <span v-else class="nav-text">{{ item.label }}</span>
             </RouterLink>
           </li>
         </ul>
       </div>
 
-      <!-- Version info -->
-      <div class="version-info">
+      <div class="version-info" v-if="!isCollapsed">
         <span>ZarGestion v1.0</span>
       </div>
     </div>
@@ -114,10 +142,8 @@ function toggleCollapse() {
   left: 0;
   bottom: 0;
   width: 250px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  background: #0f172a; /* Slate 900 */
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
   font-family: 'Inter', sans-serif;
@@ -130,40 +156,39 @@ function toggleCollapse() {
   width: 72px;
 }
 
-/* ── Collapse button ── */
-.collapse-btn {
+/* ── Collapse toggle ── */
+.section-header-sidebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  margin-bottom: 12px;
+  min-height: 32px;
+}
+
+.collapsed .section-header-sidebar {
+  justify-content: center;
+  padding: 0;
+}
+
+.toggle-sidebar-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  padding: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 4px;
-  background: #fff;
-  color: #6b7280;
-  cursor: pointer;
-  position: absolute;
-  top: 16px;
-  right: -16px;
-  z-index: 10;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
-.collapse-btn svg {
-  width: 16px;
-  height: 16px;
-  transition: transform 0.3s ease;
+.toggle-sidebar-btn:hover {
+  color: #ef4444;
 }
 
-.collapse-btn svg.rotated {
-  transform: rotate(180deg);
-}
-
-.collapse-btn:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
-  color: #dc2626;
+.toggle-sidebar-btn span {
+  font-size: 20px;
 }
 
 /* ── Navigation ── */
@@ -194,11 +219,11 @@ function toggleCollapse() {
 .nav-label {
   display: block;
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  color: #9ca3af;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #64748b; /* Slate 500 */
   padding: 0 12px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
@@ -217,9 +242,10 @@ function toggleCollapse() {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
-  border-radius: 4px;
-  color: #4b5563;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin: 0 8px;
+  color: #94a3b8; /* Slate 400 */
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
@@ -229,22 +255,38 @@ function toggleCollapse() {
   position: relative;
 }
 
-.nav-item::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 0;
-  background: #dc2626;
-  border-radius: 0 4px 4px 0;
-  transition: height 0.2s ease;
+.collapsed .nav-item {
+  justify-content: center;
+  margin: 4px 8px;
+  padding: 0;
+  height: 44px;
+  width: 44px;
+  border-radius: 12px;
 }
 
+.collapsed .nav-icon {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.collapsed .aside-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.collapsed .nav-list {
+  width: 100%;
+  align-items: center;
+}
+
+/* Eliminado el ::before indicator */
+
 .nav-item:hover {
-  background: #f3f4f6;
-  color: #1f2937;
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
 }
 
 .nav-item:hover .nav-icon {
@@ -252,24 +294,25 @@ function toggleCollapse() {
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, rgba(220, 38, 38, 0.08), rgba(220, 38, 38, 0.04));
-  color: #dc2626;
+  background: #ef4444;
+  color: #ffffff;
   font-weight: 600;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.nav-item.active .nav-icon {
+  color: #ffffff !important;
 }
 
 .nav-item.active::before {
   height: 20px;
 }
 
-.nav-item.active .nav-icon {
-  color: #dc2626;
-}
-
 .nav-icon {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
-  color: #6b7280;
+  color: #64748b;
   transition: color 0.2s ease;
 }
 
@@ -297,8 +340,8 @@ function toggleCollapse() {
 
 /* ── Bottom section ── */
 .aside-bottom {
-  padding: 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .version-info {

@@ -3,7 +3,9 @@ import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useOrderStore } from '@/stores/orders';
 import { useAuthStore } from '@/stores/auth';
 import { usePresupuestoStore } from '@/stores/presupuesto';
+import { useToast } from 'vue-toastification';
 
+const toast = useToast();
 const props = defineProps<{
   isOpen: boolean;
 }>();
@@ -175,13 +177,14 @@ async function submitOrder() {
            await orderStore.uploadInvoice(orderId, file);
         }
       }
+      toast.success('Orden creada correctamente');
       emit('success');
       emit('close');
     } else {
-      alert(res.message || 'Error al crear la orden');
+      toast.error(res.message || 'Error al crear la orden');
     }
   } catch (err) {
-    console.error(err);
+    toast.error('Error de conexión');
   } finally {
     loading.value = false;
   }

@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 import { useSupplierStore, type Supplier } from '@/stores/suppliers';
 import { useOrderStore } from '@/stores/orders';
+import { useToast } from 'vue-toastification';
+import { useDialogStore } from '@/stores/dialog';
 
+const toast = useToast();
+const dialogStore = useDialogStore();
 const route = useRoute();
 const router = useRouter();
 const supplierStore = useSupplierStore();
@@ -65,8 +68,9 @@ async function handleUpdate() {
   try {
     await supplierStore.updateSupplier(id, data);
     isEditing.value = false;
+    toast.success('Proveedor actualizado correctamente');
   } catch (err) {
-    alert('Error al actualizar el proveedor');
+    toast.error('Error al actualizar el proveedor');
   }
 }
 
@@ -77,14 +81,24 @@ const availableProducts = computed(() => {
 
 async function handleAssign() {
   if (!selectedProductId.value) return;
-  await supplierStore.assignProduct(id, parseInt(selectedProductId.value));
-  selectedProductId.value = '';
-  showAssignModal.value = false;
+  try {
+    await supplierStore.assignProduct(id, parseInt(selectedProductId.value));
+    selectedProductId.value = '';
+    showAssignModal.value = false;
+    toast.success('Producto vinculado con éxito');
+  } catch (err) {
+    toast.error('Error al vincular el producto');
+  }
 }
 
 async function handleRemove(productId: number) {
-  if (confirm('¿Desvincular este producto del proveedor?')) {
+  const confirmed = await dialogStore.confirm(
+    "Desvincular Producto",
+    "¿Estás seguro de que quieres quitar este producto de la lista de suministros de este proveedor?"
+  );
+  if (confirmed) {
     await supplierStore.removeProduct(id, productId);
+    toast.success('Producto desvinculado');
   }
 }
 
@@ -100,8 +114,9 @@ async function handleCreateProduct() {
     await orderStore.fetchProducts();
     showCreateProductModal.value = false;
     productForm.value = { nombre: '', descripcion: '' };
+    toast.success('Producto creado y vinculado al proveedor');
   } catch (err) {
-    alert('Error al crear el producto');
+    toast.error('Error al crear el producto');
   }
 }
 

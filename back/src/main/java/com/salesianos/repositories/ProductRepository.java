@@ -21,7 +21,7 @@ public class ProductRepository {
                      "(SELECT AVG(PrecioUnitario) FROM ordencompraproductos WHERE idProducto = p.idProducto) as precioMedioCalc " +
                      "FROM productos p ORDER BY p.Nombre ASC";
 
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
@@ -36,7 +36,7 @@ public class ProductRepository {
     public long save(Product p) {
         String sqlProd = "INSERT INTO productos (Nombre, Descripcion) VALUES (?, ?)";
         String sqlAssoc = "INSERT INTO productosproveedores (idProducto, idProveedor) VALUES (?, ?)";
-        try (Connection conn = DatabaseManager.getConnection("webapp")) {
+        try (Connection conn = DatabaseManager.getConnection()) {
             long productId = -1;
             try (PreparedStatement stmt = conn.prepareStatement(sqlProd, PreparedStatement.RETURN_GENERATED_KEYS)) {
                 stmt.setString(1, p.getNombre());
@@ -63,7 +63,7 @@ public class ProductRepository {
 
     public boolean update(Product p) {
         String sql = "UPDATE productos SET Nombre=?, Descripcion=? WHERE idProducto=?";
-        try (Connection conn = DatabaseManager.getConnection("webapp")) {
+        try (Connection conn = DatabaseManager.getConnection()) {
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setString(1, p.getNombre());
                 stmt.setString(2, p.getDescripcion());
@@ -92,7 +92,7 @@ public class ProductRepository {
     }
 
     public boolean delete(long id) {
-        try (Connection conn = DatabaseManager.getConnection("webapp")) {
+        try (Connection conn = DatabaseManager.getConnection()) {
             // Delete associations first
             String delSql = "DELETE FROM productosproveedores WHERE idProducto=?";
             try (PreparedStatement delStmt = conn.prepareStatement(delSql)) {

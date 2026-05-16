@@ -11,6 +11,8 @@ public class User {
     private String rol;
     private String nombreDepartamento;
     private String codigoDepartamento;
+    private boolean isVerified;
+    private long idDepartamento;
 
     public User() {}
 
@@ -35,6 +37,12 @@ public class User {
     public String getCodigoDepartamento() { return codigoDepartamento; }
     public void setCodigoDepartamento(String codigoDepartamento) { this.codigoDepartamento = codigoDepartamento; }
 
+    public boolean isVerified() { return isVerified; }
+    public void setVerified(boolean verified) { isVerified = verified; }
+
+    public long getIdDepartamento() { return idDepartamento; }
+    public void setIdDepartamento(long idDepartamento) { this.idDepartamento = idDepartamento; }
+
     public Map<String, String> toMap() {
         Map<String, String> map = new HashMap<>();
         map.put("IdUsuario", String.valueOf(idUsuario));
@@ -44,6 +52,8 @@ public class User {
         map.put("nombreDepartamento", nombreDepartamento);
         map.put("idDepartamento", nombreDepartamento); // Compatibility
         map.put("codigoDepartamento", codigoDepartamento);
+        map.put("isVerified", String.valueOf(isVerified));
+        map.put("idDepartamento", String.valueOf(idDepartamento));
         return map;
     }
 }

@@ -3,6 +3,12 @@ import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useOrderStore } from '@/stores/orders';
+import { useToast } from 'vue-toastification';
+import { useDialogStore } from '@/stores/dialog';
+
+const toast = useToast();
+const dialogStore = useDialogStore();
+const router = useRouter();
 
 interface Order {
   idorden: number;
@@ -12,13 +18,13 @@ interface Order {
   fechacreacion: string;
   estado: string;
   numfacturas?: string;
+  numcomentarios?: string;
 }
 
 const props = defineProps<{
   orders: Order[];
 }>();
 
-const router = useRouter();
 const authStore = useAuthStore();
 const orderStore = useOrderStore();
 
@@ -60,16 +66,22 @@ function canDelete(order: Order) {
 
 async function handleDelete(e: Event, orderId: number) {
   e.stopPropagation();
-  if (confirm('¿Estás seguro de eliminar esta orden?')) {
+
+  const confirmed = await dialogStore.confirm(
+    "Eliminar Orden",
+    "¿Estás seguro de eliminar esta orden? Esta acción eliminará también sus facturas y comentarios asociados."
+  );
+
+  if (confirmed) {
     try {
       const res = await orderStore.deleteOrder(orderId);
       if (res.status === 'success') {
         emit('refresh');
       } else {
-        alert(res.message || 'Error al eliminar');
+        toast.error(res.message || 'Error al eliminar');
       }
     } catch (err) {
-      alert('Error de conexión al eliminar la orden');
+      toast.error('Error de conexión al eliminar la orden');
     }
   }
 }
@@ -95,6 +107,7 @@ function formatDate(dateStr: string) {
           <th>Cantidad</th>
           <th>Estado</th>
           <th>Factura</th>
+          <th>Mensajes</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -127,10 +140,23 @@ function formatDate(dateStr: string) {
             </span>
           </td>
           <td>
+            <span v-if="parseInt(order.numcomentarios || '0') > 0" class="comment-indicator">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span class="comment-count">{{ order.numcomentarios }}</span>
+            </span>
+            <span v-else class="no-comments">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="opacity: 0.3;">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </span>
+          </td>
+          <td>
             <div class="actions-cell">
-              <button 
-                v-if="canDelete(order)" 
-                class="delete-icon-btn" 
+              <button
+                v-if="canDelete(order)"
+                class="delete-icon-btn"
                 @click="handleDelete($event, order.idorden)"
                 title="Eliminar orden"
               >
@@ -170,6 +196,36 @@ td { padding: 14px 16px; font-size: 13px; color: #334155; border-bottom: 1px sol
 .factura-badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
 .has-factura { background: #dcfce7; color: #16a34a; }
 .no-factura { background: #f3f4f6; color: #9ca3af; }
+
+.comment-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  animation: commentPulse 2s ease-in-out infinite;
+}
+
+.comment-count {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.no-comments {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  color: #cbd5e1;
+}
+
+@keyframes commentPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
 
 .delete-icon-btn {
   background: none;

@@ -4,11 +4,14 @@ import api from '@/api/axios';
 interface Presupuesto {
     cantidad: number;
     gasto: number;
-    nombrePresupuesto: string;
-    idPresupuesto: number;
-    nombreDepartamento: string;
-    Codigo: string;
+    nombrepresupuesto: string;
+    idpresupuesto: number;
+    nombredepartamento: string;
+    codigo: string;
     type: string;
+    disponible?: number;
+    // Aliases para compatibilidad con vistas que usan PascalCase
+    [key: string]: any;
 }
 
 export const usePresupuestoStore = defineStore('presupuesto', {

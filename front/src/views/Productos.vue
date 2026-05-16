@@ -2,8 +2,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useOrderStore } from '@/stores/orders';
 import { useAuthStore } from '@/stores/auth';
+import { useDialogStore } from '@/stores/dialog';
+import { useToast } from 'vue-toastification';
 import Table from '../components/common/Table.vue';
 
+const toast = useToast();
+const dialogStore = useDialogStore();
 const orderStore = useOrderStore();
 const authStore = useAuthStore();
 const searchQuery = ref('');
@@ -64,16 +68,26 @@ const openEdit = (product: any) => {
 };
 
 const handleSubmit = async () => {
-  if (isEditing.value && currentId.value) {
-    await orderStore.updateProduct(currentId.value, form.value);
-  } else {
-    await orderStore.createProduct(form.value);
+  try {
+    if (isEditing.value && currentId.value) {
+      await orderStore.updateProduct(currentId.value, form.value);
+      toast.success('Producto actualizado correctamente');
+    } else {
+      await orderStore.createProduct(form.value);
+      toast.success('Producto añadido al catálogo');
+    }
+    showModal.value = false;
+  } catch (err) {
+    toast.error('Error al guardar el producto');
   }
-  showModal.value = false;
 };
 
 const handleDelete = async (id: number | string) => {
-  if (confirm('¿Estás seguro de eliminar este producto?')) {
+  const confirmed = await dialogStore.confirm(
+    "Eliminar Producto",
+    "¿Estás seguro de eliminar este producto? Se borrará permanentemente del catálogo."
+  );
+  if (confirmed) {
     await orderStore.deleteProduct(id);
   }
 };

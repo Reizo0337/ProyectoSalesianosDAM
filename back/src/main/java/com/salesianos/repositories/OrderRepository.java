@@ -7,7 +7,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,14 +18,16 @@ public class OrderRepository {
 
     public List<Order> findAllByYear(int year) {
         List<Order> orders = new ArrayList<>();
-        String sql = "SELECT oc.*, d.Nombre as nombredepartamento " +
+        String sql = "SELECT oc.*, d.Nombre as nombredepartamento, " +
+                     "(SELECT COUNT(*) FROM facturas WHERE idOrdenCompra = oc.idOrden) as numFacturas, " +
+                     "(SELECT COUNT(*) FROM comentarios_orden WHERE idOrden = oc.idOrden) as numComentarios " +
                      "FROM ordencompra oc " +
                      "LEFT JOIN presupuesto p ON oc.idPresupuesto = p.idPresupuesto " +
                      "LEFT JOIN departamento d ON p.idDepartamento = d.idDepartamento " +
                      "WHERE YEAR(oc.fechaCreacion) = ? " +
                      "ORDER BY oc.fechaCreacion DESC";
 
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, year);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -40,7 +44,7 @@ public class OrderRepository {
     public List<Integer> findYears() {
         List<Integer> years = new ArrayList<>();
         String sql = "SELECT DISTINCT YEAR(fechaCreacion) as year FROM ordencompra ORDER BY year DESC";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
@@ -61,7 +65,7 @@ public class OrderRepository {
                           "JOIN departamento d ON p.idDepartamento = d.idDepartamento " +
                           "WHERE oc.idOrden = ? AND (d.Nombre = ? OR ? IN ('Admin', 'Administrador', 'Contable'))";
 
-        try (Connection conn = DatabaseManager.getConnection("webapp")) {
+        try (Connection conn = DatabaseManager.getConnection()) {
             try (PreparedStatement stmt = conn.prepareStatement(sqlOrder)) {
                 stmt.setLong(1, id);
                 stmt.setString(2, deptName);
@@ -119,7 +123,7 @@ public class OrderRepository {
     public long save(Order o) {
         String sql = "INSERT INTO ordencompra (idPresupuesto, numero_orden, numero_plan, Cantidad, Inversion, Tipo, descripcion, Estado) " +
                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
             stmt.setLong(1, o.getIdPresupuesto());
             stmt.setString(2, o.getNumeroOrden());
@@ -143,7 +147,7 @@ public class OrderRepository {
 
     public boolean update(Order o) {
         String sql = "UPDATE ordencompra SET Cantidad=?, numero_plan=?, Tipo=?, Inversion=?, descripcion=?, idPresupuesto=? WHERE idOrden=?";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setDouble(1, o.getCantidad());
             stmt.setString(2, o.getNumeroPlan());
@@ -161,7 +165,7 @@ public class OrderRepository {
 
     public boolean updateStatus(long id, String status) {
         String sql = "UPDATE ordencompra SET Estado = ? WHERE idOrden = ?";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, status);
             stmt.setLong(2, id);
@@ -174,11 +178,11 @@ public class OrderRepository {
 
     public Order findById(long id) {
         String sql = "SELECT * FROM ordencompra WHERE idOrden = ?";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, id);
             try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) return mapResultSetToOrder(rs);
+                if (rs.next()) return mapResultSetToOrderBasic(rs);
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error finding order " + id, e);
@@ -187,7 +191,7 @@ public class OrderRepository {
     }
 
     public boolean delete(long id) {
-        try (Connection conn = DatabaseManager.getConnection("webapp")) {
+        try (Connection conn = DatabaseManager.getConnection()) {
             conn.setAutoCommit(false);
             try {
                 try (PreparedStatement stmt = conn.prepareStatement("DELETE FROM facturas WHERE idOrdenCompra = ?")) {
@@ -220,7 +224,7 @@ public class OrderRepository {
         String yearShort = year.length() > 2 ? year.substring(year.length() - 2) : year;
         String pattern = dept + "/%/" + yearShort + "/%";
         String sql = "SELECT numero_orden FROM ordencompra WHERE numero_orden LIKE ? ORDER BY idOrden DESC LIMIT 1";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, pattern);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -242,7 +246,7 @@ public class OrderRepository {
 
     public boolean addProduct(long orderId, long productId, double price) {
         String sql = "INSERT INTO ordencompraproductos (idOrdenCompra, idProducto, PrecioUnitario) VALUES (?, ?, ?)";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, orderId);
             stmt.setLong(2, productId);
@@ -256,7 +260,7 @@ public class OrderRepository {
 
     public boolean addInvoice(long orderId, byte[] blob) {
         String sql = "INSERT INTO facturas (idOrdenCompra, blobFactura) VALUES (?, ?)";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, orderId);
             stmt.setBytes(2, blob);
@@ -267,7 +271,17 @@ public class OrderRepository {
         }
     }
 
+    // Mapper completo: para queries con JOIN a departamento y subconsultas
     private Order mapResultSetToOrder(ResultSet rs) throws SQLException {
+        Order o = mapResultSetToOrderBasic(rs);
+        o.setNombreDepartamento(rs.getString("nombredepartamento"));
+        o.setNumFacturas(rs.getInt("numFacturas"));
+        o.setNumComentarios(rs.getInt("numComentarios"));
+        return o;
+    }
+
+    // Mapper básico: para queries sin JOIN (SELECT * FROM ordencompra)
+    private Order mapResultSetToOrderBasic(ResultSet rs) throws SQLException {
         Order o = new Order();
         o.setIdOrden(rs.getLong("idOrden"));
         o.setIdPresupuesto(rs.getLong("idPresupuesto"));

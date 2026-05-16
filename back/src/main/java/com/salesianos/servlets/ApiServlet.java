@@ -5,6 +5,7 @@ import com.salesianos.controllers.OrderController;
 import com.salesianos.controllers.PresupuestoController;
 import com.salesianos.controllers.ProductController;
 import com.salesianos.controllers.SupplierController;
+import com.salesianos.controllers.UserController;
 import com.salesianos.utils.JsonUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -32,6 +33,7 @@ public class ApiServlet extends HttpServlet {
     private final PresupuestoController presupuestoController = new PresupuestoController();
     private final ProductController productController = new ProductController();
     private final SupplierController supplierController = new SupplierController();
+    private final UserController userController = new UserController();
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -41,6 +43,12 @@ public class ApiServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        handleRequest(request, response);
+    }
+
+    @Override
+    protected void doDelete(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         handleRequest(request, response);
     }
@@ -71,6 +79,8 @@ public class ApiServlet extends HttpServlet {
                     jsonResponse = authController.handle(request, response, path, session);
                 } else if (path.startsWith("/presupuestos")) {
                     jsonResponse = presupuestoController.handle(request, response, path, session);
+                } else if (path.startsWith("/usuarios")) {
+                    jsonResponse = userController.handle(request, response, path, session);
                 } else if (path.startsWith("/ordenes") || path.startsWith("/facturas") || path.startsWith("/comentarios") || path.startsWith("/notificaciones")) {
                     jsonResponse = orderController.handle(request, response, path, session);
                 } else if (path.startsWith("/proveedores")) {

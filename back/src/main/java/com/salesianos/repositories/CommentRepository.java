@@ -16,7 +16,7 @@ public class CommentRepository {
         String sql = "SELECT c.*, u.Nombre as usuario_nombre FROM comentarios_orden c " +
                      "JOIN usuario u ON c.idUsuario = u.IdUsuario " +
                      "WHERE c.idOrden = ? ORDER BY c.fecha ASC";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, orderId);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -39,7 +39,7 @@ public class CommentRepository {
 
     public boolean save(Comment c) {
         String sql = "INSERT INTO comentarios_orden (idOrden, idUsuario, comentario) VALUES (?, ?, ?)";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, c.getIdOrden());
             stmt.setLong(2, c.getIdUsuario());

@@ -14,7 +14,7 @@ public class NotificationRepository {
     public List<Notification> findAllByUser(long userId) {
         List<Notification> list = new ArrayList<>();
         String sql = "SELECT * FROM notificaciones WHERE idUsuarioDestino = ? ORDER BY fecha DESC LIMIT 20";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, userId);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -38,7 +38,7 @@ public class NotificationRepository {
 
     public boolean create(long userId, String msg, Long orderId) {
         String sql = "INSERT INTO notificaciones (idUsuarioDestino, mensaje, idOrden) VALUES (?, ?, ?)";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, userId);
             stmt.setString(2, msg);
@@ -52,7 +52,7 @@ public class NotificationRepository {
 
     public boolean markAsRead(long notifId) {
         String sql = "UPDATE notificaciones SET leida = 1 WHERE idNotificacion = ?";
-        try (Connection conn = DatabaseManager.getConnection("webapp");
+        try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, notifId);
             return stmt.executeUpdate() > 0;

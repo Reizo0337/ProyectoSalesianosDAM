@@ -1,6 +1,7 @@
 package com.salesianos.services;
 
 import com.salesianos.models.Supplier;
+import com.salesianos.models.Product;
 import com.salesianos.repositories.SupplierRepository;
 import java.util.List;
 

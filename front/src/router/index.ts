@@ -13,13 +13,13 @@ const router = createRouter({
     {
       path: '/login',
       name: 'login',
-      component: () => import('../views/Login.vue'),
+      component: () => import('../views/AuthView.vue'),
       meta: { hideLayout: true },
     },
     {
       path: '/register',
       name: 'register',
-      component: () => import('../views/Register.vue'),
+      component: () => import('../views/AuthView.vue'),
       meta: { hideLayout: true },
     },
     {
@@ -74,6 +74,12 @@ const router = createRouter({
       path: '/proveedores/:id',
       name: 'proveedorDetalle',
       component: () => import('../views/ProveedorDetail.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/usuarios',
+      name: 'usuarios',
+      component: () => import('../views/UsersView.vue'),
       meta: { requiresAuth: true },
     },
   ],

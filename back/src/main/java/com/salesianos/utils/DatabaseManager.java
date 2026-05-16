@@ -33,7 +33,7 @@ public class DatabaseManager {
             properties.load(input);
             Class.forName(properties.getProperty("db.driver"));
             
-            // Initialize the pool
+            // Initialize the pool with default webapp credentials
             String dbUrl = properties.getProperty("db.url");
             String user = properties.getProperty("db.user.webapp");
             String password = properties.getProperty("db.password.webapp");
@@ -48,14 +48,7 @@ public class DatabaseManager {
         }
     }
 
-    public static Connection getConnection(String role) throws SQLException {
-        if (!"webapp".equals(role)) {
-             String dbUrl = properties.getProperty("db.url");
-             String user = properties.getProperty("db.user." + role);
-             String password = properties.getProperty("db.password." + role);
-             return DriverManager.getConnection(dbUrl, user, password);
-        }
-
+    public static Connection getConnection() throws SQLException {
         try {
             Connection conn = connectionPool.poll(3, TimeUnit.SECONDS);
             if (conn == null || conn.isClosed() || !conn.isValid(1)) {
