@@ -204,12 +204,12 @@ watch(statsByType, (newVal) => {
       <!-- Row 2: Title + Buttons -->
       <div class="header-main-row">
         <h1>{{ viewTitle }}</h1>
-        <div class="quick-actions-bar">
+        <div class="quick-actions-grid">
           <RouterLink 
             v-for="action in quickActions" 
             :key="action.label" 
             :to="action.to" 
-            class="quick-action-card"
+            class="action-card"
             :style="{ '--accent': action.color }"
           >
             <span class="material-symbols-outlined">{{ action.icon }}</span>
