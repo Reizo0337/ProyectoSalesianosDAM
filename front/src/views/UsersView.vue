@@ -26,20 +26,22 @@ const form = ref({
 const editForm = ref({
   nombre: '',
   apellidos: '',
+  correo: '',
   idRol: '',
-  idDepartamento: ''
+  idDepartamento: '',
+  newPassword: '' // Añadido campo para contraseña
 });
  
-const pendingUsers = computed(() => userStore.users.filter(u => u.verificado === 'false' || u.verificado === false));
-const verifiedUsers = computed(() => userStore.users.filter(u => u.verificado === 'true' || u.verificado === true));
+const pendingUsers = computed(() => userStore.users.filter(u => String(u.isVerified) === 'false'));
+const verifiedUsers = computed(() => userStore.users.filter(u => String(u.isVerified) === 'true'));
  
 const isJefeSelected = computed(() => {
-  const role = roles.value.find(r => r.id === form.value.idRol);
+  const role = roles.value.find(r => String(r.id) === String(form.value.idRol));
   return role?.nombre === 'Jefe de Equipo';
 });
  
 const isEditJefeSelected = computed(() => {
-  const role = roles.value.find(r => r.id === editForm.value.idRol);
+  const role = roles.value.find(r => String(r.id) === String(editForm.value.idRol));
   return role?.nombre === 'Jefe de Equipo';
 });
  
@@ -65,7 +67,7 @@ function openVerify(user: any) {
 async function handleVerify() {
   if (!form.value.idRol) return;
   try {
-    await userStore.verifyUser(selectedUser.value.IdUsuario, form.value.idRol, form.value.idDepartamento);
+    await userStore.verifyUser(parseInt(selectedUser.value.IdUsuario), form.value.idRol, form.value.idDepartamento);
     toast.success('Usuario verificado correctamente');
     showVerifyModal.value = false;
     fetchData();
@@ -76,19 +78,40 @@ async function handleVerify() {
  
 function openEdit(user: any) {
   selectedUser.value = user;
+  
+  const userRol = roles.value.find(r => r.nombre === user.rol);
+  const userDept = departments.value.find(d => d.nombre === user.nombreDepartamento);
+ 
   editForm.value = {
-    nombre: user.nombre,
-    apellidos: user.apellidos,
-    idRol: user.idRol || '',
-    idDepartamento: user.idDepartamento || ''
+    nombre: user.nombre || '',
+    apellidos: user.apellidos || '',
+    correo: user.correo || '',
+    idRol: userRol ? userRol.id : '',
+    idDepartamento: userDept ? userDept.id : (user.idDepartamento || ''),
+    newPassword: '' // Reset password field
   };
   showEditModal.value = true;
 }
  
 async function handleUpdate() {
   try {
-    await userStore.updateUser(selectedUser.value.IdUsuario, editForm.value);
-    toast.success('Usuario actualizado');
+    const userId = parseInt(selectedUser.value.IdUsuario);
+    
+    // 1. Actualizar datos básicos
+    await userStore.updateUser(userId, {
+      nombre: editForm.value.nombre,
+      apellidos: editForm.value.apellidos,
+      correo: editForm.value.correo,
+      idRol: editForm.value.idRol,
+      idDepartamento: editForm.value.idDepartamento
+    });
+ 
+    // 2. Si hay contraseña nueva, actualizarla
+    if (editForm.value.newPassword.trim()) {
+      await userStore.updatePassword(userId, editForm.value.newPassword);
+    }
+ 
+    toast.success('Usuario actualizado correctamente');
     showEditModal.value = false;
     fetchData();
   } catch (error) {
@@ -96,12 +119,16 @@ async function handleUpdate() {
   }
 }
  
-async function deleteUser(id: number) {
+async function deleteUser(id: any) {
   const confirmed = await dialogStore.confirm('Eliminar Usuario', '¿Estás seguro? Esta acción es permanente.');
   if (confirmed) {
-    await userStore.deleteUser(id);
-    toast.success('Usuario eliminado');
-    fetchData();
+    try {
+      await userStore.deleteUser(parseInt(id));
+      toast.success('Usuario eliminado');
+      fetchData();
+    } catch (e) {
+      toast.error('Error al eliminar usuario');
+    }
   }
 }
  
@@ -219,17 +246,65 @@ onMounted(fetchData);
         </div>
       </div>
     </div>
+ 
+    <!-- Modal de Edición -->
+    <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
+      <div class="modal-card animate-up">
+        <div class="modal-header">
+          <h2>Editar Usuario</h2>
+          <button @click="showEditModal = false" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nombre</label>
+              <input v-model="editForm.nombre" class="form-input" placeholder="Nombre" />
+            </div>
+            <div class="form-group">
+              <label>Apellidos</label>
+              <input v-model="editForm.apellidos" class="form-input" placeholder="Apellidos" />
+            </div>
+            <div class="form-group">
+              <label>Correo Electrónico</label>
+              <input v-model="editForm.correo" class="form-input" disabled />
+            </div>
+            <div class="form-group">
+              <label>Rol en la Plataforma</label>
+              <select v-model="editForm.idRol" class="form-select">
+                <option value="" disabled>Selecciona un rol</option>
+                <option v-for="rol in roles" :key="rol.id" :value="rol.id">{{ rol.nombre }}</option>
+              </select>
+            </div>
+            <div class="form-group" v-if="isEditJefeSelected">
+              <label>Departamento Asignado</label>
+              <select v-model="editForm.idDepartamento" class="form-select">
+                <option value="" disabled>Selecciona un departamento</option>
+                <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.nombre }}</option>
+              </select>
+            </div>
+            <div class="form-group password-field">
+              <label>Nueva Contraseña (Dejar en blanco para no cambiar)</label>
+              <input v-model="editForm.newPassword" type="password" class="form-input" placeholder="••••••••" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="showEditModal = false" class="btn-cancel">Cancelar</button>
+          <button @click="handleUpdate" class="btn-submit">Guardar Cambios</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
  
 <style scoped>
-.dashboard-header { margin-bottom: 3.5rem; }
-.dashboard-header h1 { font-size: 2.75rem; font-weight: 850; color: #0f172a; letter-spacing: -0.04em; margin-bottom: 4px; }
+.dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3.5rem; }
+.header-left h1 { font-size: 2.75rem; font-weight: 850; color: #0f172a; letter-spacing: -0.04em; margin-bottom: 4px; }
 .subtitle { color: #64748b; font-size: 1.15rem; }
  
-.dashboard-section { margin-bottom: 2rem; }
+.dashboard-section { margin-bottom: 3rem; }
 .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
-.section-header h2 { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
+.section-header h2 { font-size: 1.75rem; font-weight: 850; color: #0f172a; letter-spacing: -0.02em; }
  
 .orange-icon { color: #f59e0b; }
 .blue-icon { color: #3b82f6; }
@@ -246,9 +321,15 @@ onMounted(fetchData);
 }
 .modal-card { background: white; width: 90%; max-width: 500px; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
 .modal-header { padding: 1.5rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-.modal-body { padding: 2rem; }
+.modal-body { padding: 1.5rem 2rem; }
 .modal-footer { padding: 1.5rem; background: #f8fafc; display: flex; justify-content: flex-end; gap: 1rem; }
-.form-select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; outline: none; }
-.btn-submit { background: #0f172a; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.form-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+.form-group label { display: block; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
+.form-select, .form-input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; outline: none; font-size: 14px; }
+.form-input:focus, .form-select:focus { border-color: #0f172a; box-shadow: 0 0 0 3px rgba(15,23,42,0.1); }
+.password-field { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0; }
+.btn-submit { background: #0f172a; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn-submit:hover { background: #1e293b; }
 .btn-cancel { background: transparent; border: none; color: #64748b; font-weight: 600; cursor: pointer; }
+.close-btn { background: none; border: none; font-size: 24px; color: #94a3b8; cursor: pointer; }
 </style>

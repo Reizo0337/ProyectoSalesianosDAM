@@ -36,7 +36,7 @@ function formatDate(dateStr: string) {
   if (!dateStr) return '---';
   try {
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr; // Si ya es un formato legible o raro
+    if (isNaN(date.getTime())) return dateStr;
     return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
   } catch (e) {
     return '---';
@@ -45,10 +45,18 @@ function formatDate(dateStr: string) {
  
 function getEstadoClass(estado: string) {
   const e = (estado || '').toLowerCase();
-  if (e.includes('abierta') || e.includes('pendiente')) return 'orange';
-  if (e.includes('validada') || e.includes('cerrada') || e.includes('finalizada')) return 'green';
-  if (e.includes('rechazada') || e.includes('cancelada')) return 'red';
-  return 'blue';
+  if (e.includes('cerrada')) return 'red';
+  if (e.includes('abierta')) return 'green';
+  if (e.includes('pendiente')) return 'orange';
+  return 'gray';
+}
+
+function getEstadoIcon(estado: string) {
+  const e = (estado || '').toLowerCase();
+  if (e.includes('cerrada')) return 'lock';
+  if (e.includes('abierta')) return 'lock_open';
+  if (e.includes('pendiente')) return 'pending';
+  return 'info';
 }
  
 async function refreshOrders() {
@@ -110,11 +118,15 @@ watch(() => authStore.user, (user) => {
       :data="filteredOrders.map(o => [
         o.idorden,
         o.numero_orden || o.numero_plan || 'S/N',
-        formatDate(o.fecha),
+        formatDate(o.fechacreacion),
         o.cantidad + '€',
         { 
           component: 'Badge', 
-          props: { text: o.estado || 'Pendiente', class: getEstadoClass(o.estado) } 
+          props: { 
+            text: o.estado || 'Pendiente', 
+            class: getEstadoClass(o.estado),
+            icon: getEstadoIcon(o.estado)
+          } 
         },
         {
           type: 'actions',

@@ -61,10 +61,10 @@ body {
 .app-main {
   margin-left: 250px;
   margin-top: 64px;
-  padding: 40px; /* Estándar para todas las vistas */
+  padding: 40px; /* Padding sagrado para todas las vistas */
   min-height: calc(100vh - 64px);
+  background: #f8fafc;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: #f8fafc; /* Fondo unificado */
 }
 
 .app-main.collapsed {

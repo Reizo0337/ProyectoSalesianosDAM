@@ -383,7 +383,6 @@ watch(statsByType, (newVal) => {
 }
 
 .dashboard-page {
-  padding: 2.5rem;
   max-width: 1600px;
   margin: 0 auto;
   display: flex;
@@ -394,51 +393,37 @@ watch(statsByType, (newVal) => {
 .dashboard-header {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 12px;
   margin-bottom: 3.5rem;
 }
-
-.header-top-row {
-  margin-bottom: 4px;
-}
-
+ 
 .header-main-row {
   display: flex;
   justify-content: space-between;
-  align-items: center; /* ¡ESTO alinea la mitad del botón con la mitad del título! */
-  margin-bottom: 12px;
+  align-items: center;
 }
-
+ 
 .header-main-row h1 {
   font-size: 2.75rem;
   font-weight: 850;
   color: #0f172a;
   letter-spacing: -0.04em;
-  line-height: 1.1; /* Ajuste para centrar visualmente la masa del texto */
   margin: 0;
-  display: flex;
-  align-items: center;
 }
-
-.header-bottom-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
+ 
 .subtitle {
   color: #64748b;
   font-size: 1.15rem;
   font-weight: 500;
 }
-
+ 
 .dynamic-greeting {
   font-size: 1rem;
   font-weight: 700;
   color: #ef4444;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  margin-bottom: 8px;
+  margin: 0;
 }
 
 .dynamic-greeting span {
@@ -449,8 +434,33 @@ watch(statsByType, (newVal) => {
 .quick-actions-grid {
   display: flex;
   gap: 12px;
+}
+ 
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  text-decoration: none;
   color: #1e293b;
-  font-size: 0.9rem;
+  font-weight: 700;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+ 
+.action-card .material-symbols-outlined {
+  color: var(--accent);
+  font-size: 22px;
+}
+ 
+.action-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  background: #f8fafc;
 }
 
 .dept-selector {

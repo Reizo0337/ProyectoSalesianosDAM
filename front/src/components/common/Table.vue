@@ -1,151 +1,107 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed, ref } from 'vue';
 
 const props = defineProps<{
-  headers: string[]
-  data: any[][]
-  title?: string
-  searchable?: boolean
-  statusColumn?: number
-  onRowClick?: (row: any[]) => void
-  loading?: boolean
-}>()
+  headers: string[];
+  data: any[][];
+  loading?: boolean;
+  onRowClick?: (row: any[]) => void;
+  itemsPerPage?: number;
+}>();
 
-const searchQuery = ref('')
-const sortColumn = ref<number | null>(null)
-const sortDirection = ref<'asc' | 'desc'>('asc')
+const currentPage = ref(1);
+const perPage = ref(props.itemsPerPage || 10);
+const sortColumn = ref<number | null>(null);
+const sortDirection = ref<'asc' | 'desc'>('asc');
 
-const statusStyles: Record<string, { bg: string; color: string; icon: string }> = {
-  'aprobado':   { bg: '#dcfce7', color: '#16a34a', icon: 'check_circle' },
-  'pendiente':  { bg: '#fef9c3', color: '#ca8a04', icon: 'schedule' },
-  'rechazado':  { bg: '#fee2e2', color: '#dc2626', icon: 'cancel' },
-  'en proceso': { bg: '#dbeafe', color: '#2563eb', icon: 'autorenew' },
-  'cerrada':    { bg: '#fee2e2', color: '#dc2626', icon: 'lock' },
-}
+// Lógica de Ordenación
+const sortedData = computed(() => {
+  if (sortColumn.value === null) return props.data;
 
-function getStatusStyle(value: string) {
-  const key = String(value).toLowerCase().trim()
-  return statusStyles[key] || { bg: '#f3f4f6', color: '#6b7280', icon: 'info' }
-}
+  return [...props.data].sort((a, b) => {
+    let valA = a[sortColumn.value!];
+    let valB = b[sortColumn.value!];
 
-function isStatus(colIndex: number) {
-  return props.statusColumn !== undefined && props.statusColumn === colIndex
-}
+    // Extraer texto si es un objeto (Badge, UserCell, etc)
+    if (typeof valA === 'object' && valA?.props?.text) valA = valA.props.text;
+    if (typeof valA === 'object' && valA?.props?.nombre) valA = valA.props.nombre;
+    if (typeof valB === 'object' && valB?.props?.text) valB = valB.props.text;
+    if (typeof valB === 'object' && valB?.props?.nombre) valB = valB.props.nombre;
 
-function handleSort(colIndex: number) {
-  if (sortColumn.value === colIndex) {
-    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
-  } else {
-    sortColumn.value = colIndex
-    sortDirection.value = 'asc'
-  }
-}
+    // Limpiar símbolos de moneda para ordenar números correctamente
+    if (typeof valA === 'string' && valA.includes('€')) valA = parseFloat(valA.replace(/[.€]/g, '').replace(',', '.'));
+    if (typeof valB === 'string' && valB.includes('€')) valB = parseFloat(valB.replace(/[.€]/g, '').replace(',', '.'));
 
-const filteredData = computed(() => {
-  let rows = [...props.data]
+    if (valA < valB) return sortDirection.value === 'asc' ? -1 : 1;
+    if (valA > valB) return sortDirection.value === 'asc' ? 1 : -1;
+    return 0;
+  });
+});
 
-  // Search filter
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.toLowerCase()
-    rows = rows.filter(row =>
-      row.some(cell => {
-        if (typeof cell === 'object') return false;
-        return String(cell).toLowerCase().includes(q);
-      })
-    )
-  }
-
-  // Sort
-  if (sortColumn.value !== null) {
-    const col = sortColumn.value
-    const dir = sortDirection.value === 'asc' ? 1 : -1
-    rows.sort((a, b) => {
-      const aVal = a[col]
-      const bVal = b[col]
-      if (typeof aVal === 'number' && typeof bVal === 'number') return (aVal - bVal) * dir
-      return String(aVal).localeCompare(String(bVal)) * dir
-    })
-  }
-
-  return rows
-})
-
-const currentPage = ref(1)
-const pageSize = 10
-
-const totalPages = computed(() => Math.ceil(filteredData.value.length / pageSize))
+const totalPages = computed(() => Math.ceil(sortedData.value.length / perPage.value));
 
 const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredData.value.slice(start, start + pageSize)
-})
+  const start = (currentPage.value - 1) * perPage.value;
+  return sortedData.value.slice(start, start + perPage.value);
+});
 
-function nextPage() {
-  if (currentPage.value < totalPages.value) currentPage.value++
+function handleSort(index: number) {
+  if (sortColumn.value === index) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortColumn.value = index;
+    sortDirection.value = 'asc';
+  }
 }
 
 function prevPage() {
-  if (currentPage.value > 1) currentPage.value--
+  if (currentPage.value > 1) currentPage.value--;
 }
 
-watch([searchQuery, () => props.data], () => {
-  currentPage.value = 1
-}, { deep: true })
+function nextPage() {
+  if (currentPage.value < totalPages.value) currentPage.value++;
+}
 </script>
 
 <template>
   <div class="table-component-container">
-    <!-- Top Header with Search and Pagination -->
     <div class="table-header-external">
-      <div class="header-left-side" v-if="searchable">
-        <div class="search-box">
-          <span class="material-symbols-outlined search-icon">search</span>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Buscar..."
-            class="search-input"
-          />
-        </div>
+      <div class="header-info">
+        <slot name="header-left"></slot>
       </div>
-      <div v-else></div> <!-- Spacer if no search -->
-
-      <div class="header-right-side">
-        <!-- Compact Pagination Boxed -->
-        <div class="compact-pagination" v-if="totalPages > 1">
-          <span class="page-numbers">{{ currentPage }}-{{ totalPages }}</span>
-          <div class="pagination-arrows">
-            <button @click="prevPage" :disabled="currentPage === 1" class="arrow-btn">
-              <span class="material-symbols-outlined">chevron_left</span>
-            </button>
-            <button @click="nextPage" :disabled="currentPage === totalPages" class="arrow-btn">
-              <span class="material-symbols-outlined">chevron_right</span>
-            </button>
-          </div>
-        </div>
-        <div class="result-count" v-else-if="filteredData.length > 0">
-          <span>{{ filteredData.length }}</span> resultado{{ filteredData.length !== 1 ? 's' : '' }}
+      
+      <div v-if="totalPages > 1" class="pagination-compact">
+        <span class="pag-info">{{ currentPage }}-{{ totalPages }}</span>
+        <div class="pag-controls">
+          <button @click="prevPage" :disabled="currentPage === 1" class="pag-btn">
+            <span class="material-symbols-outlined">chevron_left</span>
+          </button>
+          <button @click="nextPage" :disabled="currentPage === totalPages" class="pag-btn">
+            <span class="material-symbols-outlined">chevron_right</span>
+          </button>
         </div>
       </div>
     </div>
- 
+
     <div class="table-wrapper">
-    <div class="table-scroll">
-      <table>
+      <div v-if="loading" class="loading-overlay">
+        <div class="spinner"></div>
+      </div>
+
+      <table class="custom-table">
         <thead>
           <tr>
-            <th
-              v-for="(header, i) in headers"
+            <th 
+              v-for="(header, index) in headers" 
               :key="header"
-              @click="handleSort(i)"
-              class="sortable"
+              @click="handleSort(index)"
+              :class="{ 'sortable-header': true, 'active-sort': sortColumn === index }"
             >
-              <div class="th-content">
-                <span>{{ header }}</span>
-                <span class="sort-icon" v-if="sortColumn === i">
-                  {{ sortDirection === 'asc' ? '↑' : '↓' }}
+              <div class="header-content">
+                {{ header }}
+                <span class="material-symbols-outlined sort-icon">
+                  {{ sortColumn === index ? (sortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more' }}
                 </span>
-                <span class="sort-icon sort-icon--idle" v-else>↕</span>
               </div>
             </th>
           </tr>
@@ -157,66 +113,23 @@ watch([searchQuery, () => props.data], () => {
             class="table-row"
             :class="{ clickable: !!onRowClick }"
             @click="onRowClick?.(row)"
-            :style="{ animationDelay: `${rowIndex * 0.05}s` }"
           >
             <td v-for="(cell, cIdx) in row" :key="cIdx">
-              <!-- UserCell component -->
+              <!-- Render UserCell -->
               <div v-if="typeof cell === 'object' && cell?.component === 'UserCell'" class="cell-user">
                 <div class="avatar-mini">{{ cell.props.inicial || '?' }}</div>
                 <span class="user-name-cell">{{ cell.props.nombre }}</span>
               </div>
 
-              <!-- Badge component -->
+              <!-- Render Badge -->
               <span v-else-if="typeof cell === 'object' && cell?.component === 'Badge'" 
                 class="status-badge" 
                 :class="cell.props.class"
               >
-                {{ cell.props.text }}
-              </span>
-
-              <!-- Actions column -->
-              <div v-else-if="typeof cell === 'object' && cell?.type === 'actions'" class="cell-actions">
-                <button 
-                  v-for="(action, aIdx) in cell.actions" 
-                  :key="aIdx"
-                  @click.stop="action.onClick"
-                  class="action-btn"
-                  :class="action.class"
-                  :title="action.label"
-                >
-                  <span class="material-symbols-outlined">{{ action.icon }}</span>
-                </button>
-              </div>
-
-              <!-- ProgressBar component -->
-              <div v-else-if="typeof cell === 'object' && cell?.component === 'ProgressBar'" class="cell-progress-container">
-                <div class="mini-progress-bar">
-                  <div class="mini-progress-fill" :style="{ width: Math.min(cell.props.value, 100) + '%', backgroundColor: cell.props.color }"></div>
-                </div>
-                <span class="progress-percentage">{{ Math.round(cell.props.value) }}%</span>
-              </div>
-
-              <!-- ID column styling (ONLY if it's not an object and it's column 0) -->
-              <span v-else-if="cIdx === 0" class="cell-id">#{{ cell }}</span>
-
-              <!-- Status badge -->
-              <span
-                v-else-if="isStatus(cIdx)"
-                class="status-badge"
-                :style="{
-                  backgroundColor: getStatusStyle(cell).bg,
-                  color: getStatusStyle(cell).color,
-                }"
-              >
-                <span class="material-symbols-outlined status-icon">
-                  {{ getStatusStyle(cell).icon }}
+                <span v-if="cell.props.icon" class="material-symbols-outlined status-icon">
+                  {{ cell.props.icon }}
                 </span>
-                {{ cell }}
-              </span>
-
-              <!-- Price column -->
-              <span v-else-if="typeof cell === 'string' && cell.includes('€')" class="cell-price">
-                {{ cell }}
+                {{ cell.props.text }}
               </span>
 
               <!-- Actions column -->
@@ -224,505 +137,92 @@ watch([searchQuery, () => props.data], () => {
                 <button 
                   v-for="(action, aIdx) in cell.actions" 
                   :key="aIdx"
-                  @click.stop="action.onClick"
                   class="action-btn"
                   :class="action.class"
+                  @click.stop="action.onClick"
                   :title="action.label"
                 >
                   <span class="material-symbols-outlined">{{ action.icon }}</span>
                 </button>
               </div>
 
-              <!-- UserCell component -->
-              <div v-else-if="typeof cell === 'object' && cell?.component === 'UserCell'" class="cell-user">
-                <div class="avatar-mini">{{ cell.props.inicial }}</div>
-                <span class="user-name-cell">{{ cell.props.nombre }}</span>
-              </div>
-
-              <!-- Badge component -->
-              <span v-else-if="typeof cell === 'object' && cell?.component === 'Badge'" 
-                class="status-badge" 
-                :class="cell.props.class"
-              >
-                {{ cell.props.text }}
-              </span>
-
-              <!-- ProgressBar component -->
-              <div v-else-if="typeof cell === 'object' && cell?.component === 'ProgressBar'" class="cell-progress-container">
-                <div class="mini-progress-bar">
-                  <div class="mini-progress-fill" :style="{ width: Math.min(cell.props.value, 100) + '%', backgroundColor: cell.props.color }"></div>
+              <!-- Progress Bar -->
+              <div v-else-if="typeof cell === 'object' && cell?.component === 'ProgressBar'" class="cell-progress">
+                <div class="progress-bg">
+                  <div class="progress-fill" :style="{ width: cell.props.value + '%', backgroundColor: cell.props.color }"></div>
                 </div>
-                <span class="progress-percentage">{{ Math.round(cell.props.value) }}%</span>
+                <span class="progress-text">{{ Math.round(cell.props.value) }}%</span>
               </div>
- 
-              <!-- Default cell -->
+
               <span v-else>{{ cell }}</span>
-            </td>
-          </tr>
-
-          <!-- Empty state -->
-          <tr v-if="filteredData.length === 0">
-            <td :colspan="headers.length" class="empty-state">
-              <span class="material-symbols-outlined empty-icon">search_off</span>
-              <p>No se encontraron resultados</p>
-            </td>
-          </tr>
-        </tbody>
-
-        <!-- Loading State -->
-        <tbody v-else>
-          <tr>
-            <td :colspan="headers.length" class="table-loading-cell">
-              <div class="loading-spinner-container">
-                <div class="spinner-modern"></div>
-                <p>Sincronizando datos...</p>
-              </div>
             </td>
           </tr>
         </tbody>
       </table>
-    </div>
+      
+      <div v-if="!loading && data.length === 0" class="empty-state">
+        <span class="material-symbols-outlined">database_off</span>
+        <p>No se encontraron registros</p>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.table-wrapper {
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
+.table-component-container { display: flex; flex-direction: column; gap: 12px; }
+.table-header-external { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+.pagination-compact { display: flex; align-items: center; gap: 12px; background: white; padding: 6px 12px; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.pag-info { font-size: 0.85rem; font-weight: 700; color: #64748b; font-variant-numeric: tabular-nums; }
+.pag-controls { display: flex; gap: 4px; }
+.pag-btn { background: transparent; border: none; color: #94a3b8; cursor: pointer; display: flex; align-items: center; padding: 2px; border-radius: 4px; transition: all 0.2s; }
+.pag-btn:hover:not(:disabled) { background: #f1f5f9; color: #0f172a; }
+.pag-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+.table-wrapper { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); position: relative; }
+.custom-table { width: 100%; border-collapse: collapse; text-align: left; }
+.custom-table thead { background: #1e293b; color: white; }
 
-.table-component-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+.sortable-header { cursor: pointer; transition: background 0.2s; }
+.sortable-header:hover { background: #334155; }
+.active-sort { background: #334155; }
+.header-content { display: flex; align-items: center; gap: 8px; }
 
-.table-header-external {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
+.custom-table th { padding: 14px 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #334155; }
+.sort-icon { font-size: 16px; opacity: 0.5; }
+.active-sort .sort-icon { opacity: 1; color: #ef4444; }
 
+.custom-table td { padding: 16px 20px; font-size: 0.9rem; color: #334155; border-bottom: 1px solid #f1f5f9; }
+.table-row { transition: all 0.2s; }
+.table-row:hover { background: #f8fafc; }
+.table-row.clickable { cursor: pointer; }
 
-.search-box {
-  display: flex;
-  align-items: center;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  padding: 0 12px;
-  transition: all 0.2s ease;
-  flex: 1;
-  max-width: 360px;
-}
+/* Components inside cells */
+.cell-user { display: flex; align-items: center; gap: 10px; }
+.avatar-mini { width: 28px; height: 28px; border-radius: 8px; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+.user-name-cell { font-weight: 600; color: #0f172a; }
 
-.search-box:focus-within {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-  background: #fff;
-}
+.status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; }
+.status-badge .status-icon { font-size: 14px; }
+.status-badge.orange { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
+.status-badge.green { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; }
+.status-badge.red { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
+.status-badge.blue { background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; }
+.status-badge.gray { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
 
-.search-icon {
-  font-size: 20px;
-  color: #9ca3af;
-  margin-right: 8px;
-}
+.cell-actions { display: flex; gap: 6px; }
+.action-btn { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 4px; color: #64748b; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+.action-btn .material-symbols-outlined { font-size: 18px; }
+.action-btn:hover { color: #0f172a; border-color: #cbd5e1; background: #f8fafc; }
+.action-btn.btn-delete:hover { color: #ef4444; border-color: #fee2e2; background: #fef2f2; }
 
-.search-input {
-  border: none;
-  outline: none;
-  background: transparent;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  color: #1f2937;
-  padding: 10px 0;
-  width: 100%;
-}
+.cell-progress { display: flex; align-items: center; gap: 10px; min-width: 120px; }
+.progress-bg { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.progress-text { font-size: 11px; font-weight: 700; color: #64748b; width: 30px; }
 
-.search-input::placeholder {
-  color: #9ca3af;
-}
-
-.result-count {
-  font-size: 12px;
-  color: #94a3b8;
-  font-weight: 500;
-  background: #f8fafc;
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-}
-
-.result-count span {
-  font-weight: 700;
-  color: #0f172a;
-}
-
-/* ─── Compact Pagination ──────────────────────── */
-.compact-pagination {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  padding: 4px 4px 4px 12px;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.page-numbers {
-  font-size: 13px;
-  font-weight: 700;
-  color: #1e293b;
-  letter-spacing: 0.05em;
-  font-variant-numeric: tabular-nums;
-}
-
-.pagination-arrows {
-  display: flex;
-  gap: 2px;
-}
-
-.arrow-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #64748b;
-  transition: all 0.2s;
-}
-
-.arrow-btn:hover:not(:disabled) {
-  background: #f1f5f9;
-  color: #0f172a;
-}
-
-.arrow-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.arrow-btn .material-symbols-outlined {
-  font-size: 18px;
-}
-
-
-/* ─── Table Scroll ────────────────────────────── */
-.table-scroll {
-  overflow-x: auto;
-}
-
-/* ─── Table ───────────────────────────────────── */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  border-spacing: 0;
-}
-
-/* ─── Header ──────────────────────────────────── */
-thead {
-  background: #333333;
-  border-bottom: 2px solid #0f172a;
-}
-
-th {
-  padding: 14px 16px;
-  text-align: left;
-  font-size: 12px;
-  font-weight: 700;
-  color: #f8fafc;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  user-select: none;
-  white-space: nowrap;
-  border-bottom: none;
-}
-
-th.sortable {
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-th.sortable:hover {
-  color: #38bdf8;
-}
-
-.th-content {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.sort-icon {
-  font-size: 14px;
-  color: #38bdf8;
-  transition: transform 0.2s ease;
-}
-
-.sort-icon--idle {
-  color: #64748b;
-  font-size: 12px;
-}
-
-.table-row {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: rowSlideIn 0.5s ease-out both;
-}
-
-@keyframes rowSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.table-row:nth-child(even) {
-  background-color: #f8fafc;
-}
-
-.table-row:hover {
-  background-color: #ffffff;
-  transform: scale(1.008) translateY(-2px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
-  position: relative;
-  z-index: 5;
-}
-
-.table-row.clickable {
-  cursor: pointer;
-}
-
-.table-row.clickable:hover {
-  background-color: #ffffff;
-}
-
-td {
-  padding: 14px 16px;
-  font-size: 13px;
-  color: #334155;
-  white-space: nowrap;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-/* ─── Cell Variants ───────────────────────────── */
-.cell-id {
-  font-weight: 700;
-  font-size: 13px;
-  color: #6366f1;
-  background: #eef2ff;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-variant-numeric: tabular-nums;
-}
-
-.cell-price {
-  font-weight: 600;
-  color: #1f2937;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ─── UserCell ─────────────────────────────── */
-.cell-user {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.avatar-mini {
-  width: 32px;
-  height: 32px;
-  background: #f1f5f9;
-  color: #475569;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 12px;
-  border: 1px solid #e2e8f0;
-}
-
-.user-name-cell {
-  font-weight: 600;
-  color: #1e293b;
-}
-
-/* ─── Cell Progress ───────────────────────────── */
-.cell-progress-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 140px;
-}
-
-.mini-progress-bar {
-  flex: 1;
-  height: 6px;
-  background: #f1f5f9;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.mini-progress-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 1s ease-out;
-}
-
-.progress-percentage {
-  font-size: 11px;
-  font-weight: 700;
-  color: #64748b;
-  width: 32px;
-}
-
-/* ─── Actions Cell ────────────────────────────── */
-.cell-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.action-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 4px;
-  border: none;
-  background: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: #94a3b8;
-}
-
-.action-btn:hover {
-  background: #f1f5f9;
-  color: #1e293b;
-}
-
-.btn-edit:hover {
-  background: #eff6ff !important;
-  color: #2563eb !important;
-}
-
-.btn-delete:hover {
-  background: #fef2f2 !important;
-  color: #ef4444 !important;
-}
-
-.btn-view:hover, .btn-products:hover {
-  background: #eef2ff !important;
-  color: #4f46e5 !important;
-}
-
-.action-btn .material-symbols-outlined {
-  font-size: 20px;
-}
-
-/* ─── Status Badge ────────────────────────────── */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  transition: opacity 0.2s ease;
-}
-
-.status-badge:hover {
-  opacity: 0.85;
-}
-
-.status-icon {
-  font-size: 16px;
-}
-
-/* ─── Empty State ─────────────────────────────── */
-.empty-state {
-  text-align: center;
-  padding: 48px 20px !important;
-  color: #9ca3af;
-}
-
-.empty-icon {
-  font-size: 40px;
-  color: #d1d5db;
-  margin-bottom: 8px;
-}
-
-.empty-state p {
-  font-size: 14px;
-  margin-top: 4px;
-}
-
-/* ─── Pagination ──────────────────────────────── */
-.pagination-controls {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 16px; border-top: 1px solid #e2e8f0; background: #f8fafc;
-}
-.page-info { font-size: 13px; font-weight: 600; color: #475569; }
-.page-btn { padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer; transition: all 0.2s; }
-.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.page-btn:not(:disabled):hover { background: #f1f5f9; border-color: #94a3b8; }
-
-/* ── Loading Spinner ── */
-.table-loading-cell {
-  padding: 80px 0 !important;
-}
-
-.loading-spinner-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.spinner-modern {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f1f5f9;
-  border-top: 3px solid #ef4444;
-  border-radius: 50%;
-  animation: spinTable 0.8s linear infinite;
-}
-
-@keyframes spinTable {
-  to { transform: rotate(360deg); }
-}
-
-.loading-spinner-container p {
-  color: #64748b;
-  font-size: 14px;
-  font-weight: 500;
-}
+.loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; z-index: 10; }
+.spinner { width: 30px; height: 30px; border: 3px solid #f1f5f9; border-top-color: #ef4444; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { padding: 4rem; text-align: center; color: #94a3b8; }
+.empty-state .material-symbols-outlined { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
 </style>

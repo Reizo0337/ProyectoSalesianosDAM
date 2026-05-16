@@ -82,7 +82,6 @@ onUnmounted(() => {
       </button>
       <div class="header-logo" @click="router.push('/')">
         <img src="/img/logoPrincipal.jpg" alt="Salesianos Logo" class="logo-img" />
-        <span class="app-brand-name">Zar<span>Gestion</span></span>
       </div>
     </div>
 
