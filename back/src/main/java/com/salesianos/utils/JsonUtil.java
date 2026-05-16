@@ -6,25 +6,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jakarta.servlet.http.HttpServletRequest;
 
-/**
- * Utilidad básica para JSON.
- */
+// Utilidad básica para JSON.
 public class JsonUtil {
 
+    // Crea un JSON de error.
     public static String errorJson(String message) {
         return String.format("{\"status\":\"error\",\"message\":\"%s\"}", escape(message));
     }
 
+    // Crea un JSON de mensaje.
     public static String messageJson(String message) {
         return String.format("{\"status\":\"success\",\"message\":\"%s\"}", escape(message));
     }
 
-    /**
-     * Lee el cuerpo de la petición y lo devuelve como String.
-     */
-    public static String getRequestBody(jakarta.servlet.http.HttpServletRequest request) throws IOException {
+    // Lee el cuerpo de la petición y lo devuelve como String.
+    public static String getRequestBody(HttpServletRequest request) throws IOException {
         StringBuilder sb = new StringBuilder();
-        try (java.io.BufferedReader reader = request.getReader()) {
+        try (BufferedReader reader = request.getReader()) {
             String line;
             while ((line = reader.readLine()) != null) {
                 sb.append(line);
@@ -33,6 +31,7 @@ public class JsonUtil {
         return sb.toString();
     }
 
+    // Busca un campo en un JSON.
     public static String findJsonField(String json, String fieldName) {
         if (json == null || json.isEmpty()) return null;
         Pattern pattern = Pattern.compile("\"" + fieldName + "\":\\s*\"([^\"]*)\"");
@@ -43,6 +42,7 @@ public class JsonUtil {
         return null;
     }
 
+    // Convierte un mapa a JSON.
     public static String mapToJson(java.util.Map<String, String> map) {
         StringBuilder sb = new StringBuilder("{");
         boolean first = true;
@@ -63,10 +63,12 @@ public class JsonUtil {
         return sb.toString();
     }
 
+    // Convierte una lista de mapas a JSON.
     public static String listToJson(java.util.List<java.util.Map<String, String>> list) {
         return listToJson(list, "data");
     }
 
+    // Convierte una lista de mapas a JSON con una clave específica.
     public static String listToJson(java.util.List<java.util.Map<String, String>> list, String key) {
         StringBuilder sb = new StringBuilder();
         sb.append("{\"status\":\"success\",");
@@ -91,6 +93,7 @@ public class JsonUtil {
         return sb.toString();
     }
 
+    // Escapa caracteres especiales en un String para que sea seguro incluirlo en un JSON.
     private static String escape(String s) {
         if (s == null) return "";
         return s.replace("\\", "\\\\")

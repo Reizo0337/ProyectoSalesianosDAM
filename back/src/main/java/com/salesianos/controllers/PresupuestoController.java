@@ -1,16 +1,21 @@
 package com.salesianos.controllers;
 
+import com.salesianos.models.Budget;
 import com.salesianos.models.Role;
+import com.salesianos.services.BudgetService;
 import com.salesianos.utils.JsonUtil;
-import com.salesianos.utils.Presupuestos;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class PresupuestoController {
+
+    private final BudgetService budgetService = new BudgetService();
 
     public String handle(HttpServletRequest request, HttpServletResponse response, String path, HttpSession session) throws IOException {
         switch (path) {
@@ -46,8 +51,8 @@ public class PresupuestoController {
             return JsonUtil.errorJson("Falta el parámetro de departamento");
         }
 
-        Presupuestos util = new Presupuestos();
-        List<Map<String, String>> data = util.getPresupuestosByDept(dep, anio);
+        List<Budget> budgets = budgetService.getBudgetsByDept(dep, anio);
+        List<Map<String, String>> data = budgets.stream().map(Budget::toMap).collect(Collectors.toList());
         return JsonUtil.listToJson(data, "presupuestos");
     }
 
@@ -56,14 +61,13 @@ public class PresupuestoController {
         String anioStr = JsonUtil.findJsonField(body, "anio");
         int anio = (anioStr != null && !anioStr.isEmpty()) ? Integer.parseInt(anioStr) : java.time.LocalDate.now().getYear();
 
-        Presupuestos util = new Presupuestos();
-        List<Map<String, String>> data = util.getAllPresupuestos(anio);
+        List<Budget> budgets = budgetService.getBudgetsByYear(anio);
+        List<Map<String, String>> data = budgets.stream().map(Budget::toMap).collect(Collectors.toList());
         return JsonUtil.listToJson(data, "presupuestos");
     }
 
     private String handleGetYears(HttpServletResponse response) {
-        Presupuestos util = new Presupuestos();
-        List<Integer> years = util.getYearsWithPresupuestos();
+        List<Integer> years = budgetService.getYears();
         StringBuilder json = new StringBuilder("{\"status\":\"success\",\"years\":[");
         for (int i = 0; i < years.size(); i++) {
             json.append(years.get(i));
@@ -72,6 +76,7 @@ public class PresupuestoController {
         json.append("]}");
         return json.toString();
     }
+
     private String handleClone(HttpServletRequest request, HttpServletResponse response) throws IOException {
         String body = JsonUtil.getRequestBody(request);
         String fromYearStr = JsonUtil.findJsonField(body, "fromYear");
@@ -85,8 +90,7 @@ public class PresupuestoController {
         int fromYear = Integer.parseInt(fromYearStr);
         int toYear = Integer.parseInt(toYearStr);
         
-        Presupuestos util = new Presupuestos();
-        boolean ok = util.cloneBudgets(fromYear, toYear);
+        boolean ok = budgetService.cloneBudgets(fromYear, toYear);
         return ok ? JsonUtil.messageJson("Presupuestos clonados correctamente") : JsonUtil.errorJson("Error al clonar presupuestos");
     }
 }
