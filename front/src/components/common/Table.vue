@@ -8,6 +8,7 @@ const props = defineProps<{
   searchable?: boolean
   statusColumn?: number
   onRowClick?: (row: any[]) => void
+  loading?: boolean
 }>()
 
 const searchQuery = ref('')
@@ -94,22 +95,40 @@ watch([searchQuery, () => props.data], () => {
 
 <template>
   <div class="table-component-container">
-    <!-- Search bar external -->
-    <div class="table-header-external" v-if="searchable">
-      <div class="search-box">
-        <span class="material-symbols-outlined search-icon">search</span>
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Buscar en la tabla..."
-          class="search-input"
-        />
+    <!-- Top Header with Search and Pagination -->
+    <div class="table-header-external">
+      <div class="header-left-side" v-if="searchable">
+        <div class="search-box">
+          <span class="material-symbols-outlined search-icon">search</span>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Buscar..."
+            class="search-input"
+          />
+        </div>
       </div>
-      <div class="result-count">
-        <span>{{ filteredData.length }}</span> resultado{{ filteredData.length !== 1 ? 's' : '' }}
+      <div v-else></div> <!-- Spacer if no search -->
+
+      <div class="header-right-side">
+        <!-- Compact Pagination Boxed -->
+        <div class="compact-pagination" v-if="totalPages > 1">
+          <span class="page-numbers">{{ currentPage }}-{{ totalPages }}</span>
+          <div class="pagination-arrows">
+            <button @click="prevPage" :disabled="currentPage === 1" class="arrow-btn">
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+            <button @click="nextPage" :disabled="currentPage === totalPages" class="arrow-btn">
+              <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+        </div>
+        <div class="result-count" v-else-if="filteredData.length > 0">
+          <span>{{ filteredData.length }}</span> resultado{{ filteredData.length !== 1 ? 's' : '' }}
+        </div>
       </div>
     </div>
-
+ 
     <div class="table-wrapper">
     <div class="table-scroll">
       <table>
@@ -131,18 +150,54 @@ watch([searchQuery, () => props.data], () => {
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody v-if="!loading">
           <tr
             v-for="(row, rowIndex) in paginatedData"
             :key="rowIndex"
             class="table-row"
             :class="{ clickable: !!onRowClick }"
             @click="onRowClick?.(row)"
-            :style="{ animationDelay: `${rowIndex * 0.04}s` }"
+            :style="{ animationDelay: `${rowIndex * 0.05}s` }"
           >
             <td v-for="(cell, cIdx) in row" :key="cIdx">
-              <!-- ID column styling -->
-              <span v-if="cIdx === 0" class="cell-id">#{{ cell }}</span>
+              <!-- UserCell component -->
+              <div v-if="typeof cell === 'object' && cell?.component === 'UserCell'" class="cell-user">
+                <div class="avatar-mini">{{ cell.props.inicial || '?' }}</div>
+                <span class="user-name-cell">{{ cell.props.nombre }}</span>
+              </div>
+
+              <!-- Badge component -->
+              <span v-else-if="typeof cell === 'object' && cell?.component === 'Badge'" 
+                class="status-badge" 
+                :class="cell.props.class"
+              >
+                {{ cell.props.text }}
+              </span>
+
+              <!-- Actions column -->
+              <div v-else-if="typeof cell === 'object' && cell?.type === 'actions'" class="cell-actions">
+                <button 
+                  v-for="(action, aIdx) in cell.actions" 
+                  :key="aIdx"
+                  @click.stop="action.onClick"
+                  class="action-btn"
+                  :class="action.class"
+                  :title="action.label"
+                >
+                  <span class="material-symbols-outlined">{{ action.icon }}</span>
+                </button>
+              </div>
+
+              <!-- ProgressBar component -->
+              <div v-else-if="typeof cell === 'object' && cell?.component === 'ProgressBar'" class="cell-progress-container">
+                <div class="mini-progress-bar">
+                  <div class="mini-progress-fill" :style="{ width: Math.min(cell.props.value, 100) + '%', backgroundColor: cell.props.color }"></div>
+                </div>
+                <span class="progress-percentage">{{ Math.round(cell.props.value) }}%</span>
+              </div>
+
+              <!-- ID column styling (ONLY if it's not an object and it's column 0) -->
+              <span v-else-if="cIdx === 0" class="cell-id">#{{ cell }}</span>
 
               <!-- Status badge -->
               <span
@@ -178,6 +233,28 @@ watch([searchQuery, () => props.data], () => {
                 </button>
               </div>
 
+              <!-- UserCell component -->
+              <div v-else-if="typeof cell === 'object' && cell?.component === 'UserCell'" class="cell-user">
+                <div class="avatar-mini">{{ cell.props.inicial }}</div>
+                <span class="user-name-cell">{{ cell.props.nombre }}</span>
+              </div>
+
+              <!-- Badge component -->
+              <span v-else-if="typeof cell === 'object' && cell?.component === 'Badge'" 
+                class="status-badge" 
+                :class="cell.props.class"
+              >
+                {{ cell.props.text }}
+              </span>
+
+              <!-- ProgressBar component -->
+              <div v-else-if="typeof cell === 'object' && cell?.component === 'ProgressBar'" class="cell-progress-container">
+                <div class="mini-progress-bar">
+                  <div class="mini-progress-fill" :style="{ width: Math.min(cell.props.value, 100) + '%', backgroundColor: cell.props.color }"></div>
+                </div>
+                <span class="progress-percentage">{{ Math.round(cell.props.value) }}%</span>
+              </div>
+ 
               <!-- Default cell -->
               <span v-else>{{ cell }}</span>
             </td>
@@ -191,14 +268,19 @@ watch([searchQuery, () => props.data], () => {
             </td>
           </tr>
         </tbody>
-      </table>
-    </div>
 
-    <!-- Pagination -->
-    <div class="pagination-controls" v-if="totalPages > 1">
-      <button @click="prevPage" :disabled="currentPage === 1" class="page-btn">Anterior</button>
-      <span class="page-info">Página {{ currentPage }} de {{ totalPages }}</span>
-      <button @click="nextPage" :disabled="currentPage === totalPages" class="page-btn">Siguiente</button>
+        <!-- Loading State -->
+        <tbody v-else>
+          <tr>
+            <td :colspan="headers.length" class="table-loading-cell">
+              <div class="loading-spinner-container">
+                <div class="spinner-modern"></div>
+                <p>Sincronizando datos...</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
     </div>
   </div>
@@ -206,11 +288,11 @@ watch([searchQuery, () => props.data], () => {
 
 <style scoped>
 .table-wrapper {
-  background: #ffffff;
-  border-radius: 4px;
-  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 @keyframes fadeInUp {
@@ -234,7 +316,9 @@ watch([searchQuery, () => props.data], () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 12px;
 }
+
 
 .search-box {
   display: flex;
@@ -276,15 +360,73 @@ watch([searchQuery, () => props.data], () => {
 }
 
 .result-count {
-  font-size: 13px;
-  color: #9ca3af;
-  white-space: nowrap;
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+  background: #f8fafc;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
 }
 
 .result-count span {
-  font-weight: 600;
-  color: #6b7280;
+  font-weight: 700;
+  color: #0f172a;
 }
+
+/* ─── Compact Pagination ──────────────────────── */
+.compact-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 4px 4px 4px 12px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.page-numbers {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination-arrows {
+  display: flex;
+  gap: 2px;
+}
+
+.arrow-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.arrow-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.arrow-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.arrow-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
 
 /* ─── Table Scroll ────────────────────────────── */
 .table-scroll {
@@ -344,7 +486,8 @@ th.sortable:hover {
 }
 
 .table-row {
-  transition: background-color 0.15s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: rowSlideIn 0.5s ease-out both;
 }
 
 @keyframes rowSlideIn {
@@ -363,7 +506,11 @@ th.sortable:hover {
 }
 
 .table-row:hover {
-  background-color: #e2e8f0;
+  background-color: #ffffff;
+  transform: scale(1.008) translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+  position: relative;
+  z-index: 5;
 }
 
 .table-row.clickable {
@@ -371,7 +518,7 @@ th.sortable:hover {
 }
 
 .table-row.clickable:hover {
-  background-color: #f1f5f9;
+  background-color: #ffffff;
 }
 
 td {
@@ -397,6 +544,61 @@ td {
   font-weight: 600;
   color: #1f2937;
   font-variant-numeric: tabular-nums;
+}
+
+/* ─── UserCell ─────────────────────────────── */
+.cell-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-mini {
+  width: 32px;
+  height: 32px;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.user-name-cell {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* ─── Cell Progress ───────────────────────────── */
+.cell-progress-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 140px;
+}
+
+.mini-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.mini-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1s ease-out;
+}
+
+.progress-percentage {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  width: 32px;
 }
 
 /* ─── Actions Cell ────────────────────────────── */
@@ -492,4 +694,35 @@ td {
 .page-btn { padding: 6px 12px; border-radius: 4px; border: 1px solid #cbd5e1; background: white; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer; transition: all 0.2s; }
 .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .page-btn:not(:disabled):hover { background: #f1f5f9; border-color: #94a3b8; }
+
+/* ── Loading Spinner ── */
+.table-loading-cell {
+  padding: 80px 0 !important;
+}
+
+.loading-spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.spinner-modern {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f1f5f9;
+  border-top: 3px solid #ef4444;
+  border-radius: 50%;
+  animation: spinTable 0.8s linear infinite;
+}
+
+@keyframes spinTable {
+  to { transform: rotate(360deg); }
+}
+
+.loading-spinner-container p {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
 </style>

@@ -106,10 +106,10 @@ function viewProducts(id: number) {
 
 <template>
   <div class="view-container animate-fade-in">
-    <div class="header-section">
-      <div class="title-box">
+    <header class="dashboard-header animate-in">
+      <div class="header-left">
         <h1>Gestión de Proveedores</h1>
-        <p>Directorio de partners y suministradores oficiales. <span class="result-count-inline" v-if="supplierStore.suppliers.length > 0">({{ filteredSuppliers.length }} resultados)</span></p>
+        <p class="subtitle">Directorio de partners y suministradores oficiales. <span class="result-count-inline" v-if="supplierStore.suppliers.length > 0">({{ filteredSuppliers.length }} resultados)</span></p>
       </div>
       <div class="header-actions">
         <div class="search-box" v-if="supplierStore.suppliers.length > 0">
@@ -117,13 +117,11 @@ function viewProducts(id: number) {
           <input v-model="searchQuery" type="text" placeholder="Buscar proveedor..." class="search-input" />
         </div>
         <button v-if="canManage" class="create-btn" @click="openCreate">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
+          <span class="material-symbols-outlined">add_circle</span>
           Nuevo Proveedor
         </button>
       </div>
-    </div>
+    </header>
 
     <div class="table-card">
       <div v-if="supplierStore.loading" class="loading-state">
@@ -147,6 +145,7 @@ function viewProducts(id: number) {
             ]
           }
         ])"
+        :onRowClick="(row) => viewProducts(row[0])"
         :searchable="false"
       />
       <div v-else-if="supplierStore.suppliers.length > 0" class="empty-state">
@@ -191,43 +190,46 @@ function viewProducts(id: number) {
 </template>
 
 <style scoped>
-.view-container {
-  padding: 24px;
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3.5rem;
+  gap: 2rem;
 }
 
-.header-section {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;
-}
-.header-section h1 { font-size: 28px; font-weight: 700; color: #1f2937; margin-bottom: 8px; }
-.header-section p { color: #6b7280; }
-.result-count-inline { font-weight: 600; color: #475569; margin-left: 8px; }
-.header-actions { display: flex; align-items: center; gap: 16px; }
-.result-count-inline { font-weight: 600; color: #475569; margin-left: 8px; }
-
-.search-box {
-  display: flex; align-items: center; background: #f9fafb;
-  border: 1px solid #e5e7eb; border-radius: 4px; padding: 0 12px;
-  width: 300px; transition: all 0.25s;
-}
-.search-box:focus-within { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1); background: #fff; }
-.search-icon { font-size: 20px; color: #9ca3af; margin-right: 8px; }
-.search-input { border: none; outline: none; background: transparent; font-size: 14px; color: #1f2937; padding: 10px 0; width: 100%; }
-
-.create-btn {
-  display: flex; align-items: center; gap: 0.5rem;
-  background: #dc2626; color: white;
-  padding: 0.75rem 1.5rem; border-radius: 4px;
-  font-weight: 600; border: none; cursor: pointer;
-  transition: all 0.3s;
+.header-left {
+  display: flex;
+  flex-direction: column;
 }
 
-.create-btn:hover { background: #b91c1c; }
+.header-left h1 {
+  font-size: 2.75rem;
+  font-weight: 850;
+  color: #0f172a;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  color: #64748b;
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
 
 .table-card {
   background: white;
-  border-radius: 4px;
+  border-radius: 12px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f1f5f9;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
 }
 
 /* Modal Styles */

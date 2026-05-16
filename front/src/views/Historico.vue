@@ -88,10 +88,10 @@ watch([selectedYear, activeTab], () => {
 
 <template>
   <div class="view-container">
-    <div class="header-section">
+    <div class="header-section animate-in">
       <div class="title-box">
-        <h1>Histórico del Centro</h1>
-        <p>Consulta de registros financieros y presupuestarios de ejercicios anteriores.</p>
+        <h1 class="gradient-text">Histórico del Centro</h1>
+        <p class="subtitle">Consulta de registros financieros y presupuestarios de ejercicios anteriores.</p>
       </div>
       
       <div class="header-controls">
@@ -117,14 +117,14 @@ watch([selectedYear, activeTab], () => {
       </div>
     </div>
 
-    <div v-if="activeTab === 'presupuestos'" class="actions-bar">
+    <div v-if="activeTab === 'presupuestos'" class="actions-bar animate-in delay-1">
       <button @click="handleCloneToCurrent" class="btn-clone-history">
         <span class="material-symbols-outlined">content_copy</span>
         Establecer como presupuesto para el año actual ({{ currentYear }})
       </button>
     </div>
 
-    <div class="table-card">
+    <div class="table-card animate-in delay-2">
       <div v-if="activeTab === 'ordenes'">
         <div v-if="orderStore.orders.length > 0">
           <div class="table-toolbar">
@@ -178,8 +178,18 @@ watch([selectedYear, activeTab], () => {
 .header-section {
   display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;
 }
-.header-section h1 { font-size: 32px; font-weight: 850; color: #0f172a; margin-bottom: 8px; letter-spacing: -0.03em;}
-.header-section p { color: #64748b; font-size: 1.1rem; }
+
+.gradient-text {
+  font-size: 3rem;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 0.5rem;
+}
+
+.subtitle { color: #64748b; font-size: 1.15rem; font-weight: 500; }
 
 .header-controls {
   display: flex;
@@ -290,4 +300,23 @@ watch([selectedYear, activeTab], () => {
 .table-scroll { overflow-x: auto; }
 
 .empty-state, .loading-state { text-align: center; padding: 48px; color: #9ca3af; }
+
+/* ── Animaciones de Entrada ── */
+.animate-in {
+  animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 </style>

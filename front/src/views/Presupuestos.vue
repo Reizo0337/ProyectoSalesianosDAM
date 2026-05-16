@@ -96,72 +96,66 @@ const stats = computed(() => {
           <input v-model="searchQuery" type="text" placeholder="Buscar presupuesto..." class="search-input" />
         </div>
       </div>
-    </div>
-
-    <!-- Quick Stats Summary -->
-    <div class="stats-summary-grid">
-      <div class="premium-budget-card">
-         <div class="budget-main">
-            <div class="budget-available">
-               <span class="amount">{{ stats.ordinarios.remaining.toLocaleString() }}</span>
-               <span class="currency">€</span>
-            </div>
-            <div class="budget-total">
-               <span class="sep">/</span>
-               <span class="total-val">{{ stats.ordinarios.total.toLocaleString() }}€</span>
-            </div>
-         </div>
-         <div class="budget-footer">
-            <div class="spent-tag">
-               <span class="label">Gastado</span>
-               <span class="val">{{ stats.ordinarios.spent.toLocaleString() }}€</span>
-            </div>
-         </div>
-         <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: (stats.ordinarios.spent / stats.ordinarios.total * 100) + '%' }"></div>
-         </div>
+    </div>    <!-- Modern Bento KPI Grid -->
+    <div class="bento-grid animate-in delay-1">
+      <div class="bento-card bento-card--primary">
+        <div class="bento-icon"><span class="material-symbols-outlined">payments</span></div>
+        <div class="bento-info">
+          <span class="bento-label">Presupuesto Total</span>
+          <span class="bento-value">{{ stats.global.total.toLocaleString() }}€</span>
+        </div>
       </div>
 
-      <div class="premium-budget-card investment">
-         <div class="budget-main">
-            <div class="budget-available">
-               <span class="amount">{{ stats.inversiones.remaining.toLocaleString() }}</span>
-               <span class="currency">€</span>
-            </div>
-            <div class="budget-total">
-               <span class="sep">/</span>
-               <span class="total-val">{{ stats.inversiones.total.toLocaleString() }}€</span>
-            </div>
-         </div>
-         <div class="budget-footer">
-            <div class="spent-tag">
-               <span class="label">Ejecutado</span>
-               <span class="val">{{ stats.inversiones.spent.toLocaleString() }}€</span>
-            </div>
-         </div>
-         <div class="progress-bar">
-            <div class="progress-fill" :style="{ width: (stats.inversiones.spent / stats.inversiones.total * 100) + '%' }"></div>
-         </div>
+      <div class="bento-card bento-card--success">
+        <div class="bento-icon"><span class="material-symbols-outlined">savings</span></div>
+        <div class="bento-info">
+          <span class="bento-label">Disponible Total</span>
+          <span class="bento-value">{{ stats.global.remaining.toLocaleString() }}€</span>
+        </div>
+      </div>
+
+      <div class="bento-card">
+        <div class="bento-icon"><span class="material-symbols-outlined">receipt_long</span></div>
+        <div class="bento-info">
+          <span class="bento-label">Gasto Ordinario</span>
+          <span class="bento-value">{{ stats.ordinarios.spent.toLocaleString() }}€</span>
+        </div>
+        <div class="bento-progress">
+          <div class="bento-progress-fill" :style="{ width: (stats.ordinarios.spent / stats.ordinarios.total * 100) + '%' }"></div>
+        </div>
+      </div>
+
+      <div class="bento-card">
+        <div class="bento-icon"><span class="material-symbols-outlined">rocket_launch</span></div>
+        <div class="bento-info">
+          <span class="bento-label">Plan Inversión</span>
+          <span class="bento-value">{{ stats.inversiones.spent.toLocaleString() }}€</span>
+        </div>
+        <div class="bento-progress">
+          <div class="bento-progress-fill bento-progress-fill--alt" :style="{ width: (stats.inversiones.spent / stats.inversiones.total * 100) + '%' }"></div>
+        </div>
       </div>
     </div>
 
-    <div class="table-card">
+    <div class="table-card animate-in delay-2">
       <div class="table-header-custom">
         <span class="material-symbols-outlined">list_alt</span>
         <h2>Listado Detallado</h2>
       </div>
       <Table
         v-if="filteredPresupuestos.length > 0"
-        :headers="headers"
-        :data="filteredPresupuestos.map(p => [
-          p.idpresupuesto || p.idPresupuesto,
-          p.codigo || p.Codigo,
-          p.nombrepresupuesto || p.nombrePresupuesto,
-          formatType(p),
-          (p.cantidad || p.Cantidad) + '€',
-          (p.gasto || p.Gasto) + '€',
-          p.nombredepartamento || p.nombreDepartamento
-        ])"
+        :headers="['Código', 'Nombre', 'Departamento', 'Cantidad', 'Disponible', 'Ejecución']"
+        :data="filteredPresupuestos.map(p => ({
+          'Código': p.codigo || p.Codigo,
+          'Nombre': p.nombrepresupuesto || p.nombrePresupuesto,
+          'Departamento': p.nombredepartamento || p.nombreDepartamento,
+          'Cantidad': (p.cantidad || p.Cantidad).toLocaleString() + '€',
+          'Disponible': (p.cantidad - p.gasto).toLocaleString() + '€',
+          'Ejecución': {
+            component: 'ProgressBar',
+            props: { value: (p.gasto / p.cantidad * 100), color: isInvestment(p) ? '#3b82f6' : '#ef4444' }
+          }
+        }))"
         :searchable="false"
       />
       <div v-else class="empty-state">
@@ -390,119 +384,135 @@ const stats = computed(() => {
     grid-template-columns: 1fr;
   }
 }
-.premium-budget-card {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  border-radius: 4px;
-  padding: 32px;
-  color: white;
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+.bento-card {
+  background: white;
+  padding: 1.75rem;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 160px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.2);
+}
+
+.bento-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  border-color: #cbd5e1;
+}
+
+.bento-card--primary {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: white;
+  border: none;
+}
+
+.bento-card--success {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: #bbf7d0;
+}
+
+.bento-icon {
+  width: 48px;
+  height: 48px;
+  background: #f8fafc;
+  border-radius: 14px;
   display: flex;
-  flex-direction: column;
-  gap: 24px;
-  border: 1px solid rgba(255,255,255,0.1);
-  transition: transform 0.3s;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  margin-bottom: 1rem;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.premium-budget-card:hover {
-  transform: translateY(-4px);
-}
-
-.premium-budget-card.investment {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-}
-
-.budget-main {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.budget-available {
-  display: flex;
-  align-items: baseline;
-}
-
-.budget-available .amount {
-  font-size: 4rem;
-  font-weight: 850;
-  letter-spacing: -2px;
-  line-height: 1;
-}
-
-.budget-available .currency {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-left: 4px;
-  opacity: 0.8;
-}
-
-.budget-total {
-  display: flex;
-  align-items: baseline;
-  color: rgba(255,255,255,0.5);
-  font-weight: 600;
-}
-
-.budget-total .sep {
-  font-size: 2rem;
-  margin-right: 8px;
-}
-
-.budget-total .total-val {
-  font-size: 1.25rem;
-}
-
-.budget-footer {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.spent-tag {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  background: rgba(255,255,255,0.05);
-  padding: 10px 16px;
-  border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.1);
-}
-
-.spent-tag .label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  opacity: 0.6;
-  font-weight: 700;
-}
-
-.spent-tag .val {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #fb7185;
-}
-
-.investment .spent-tag .val {
+.bento-card--primary .bento-icon {
+  background: rgba(255, 255, 255, 0.1);
   color: #38bdf8;
+  backdrop-filter: blur(4px);
 }
 
-.progress-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+.bento-card--success .bento-icon {
+  background: white;
+  color: #16a34a;
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.15);
+}
+
+.bento-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bento-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.bento-card--primary .bento-label {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.bento-value {
+  font-size: 1.85rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.bento-card--primary .bento-value {
+  color: white;
+}
+
+.bento-card--success .bento-value {
+  color: #14532d;
+}
+
+.bento-progress {
   height: 6px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  margin-top: 1.25rem;
+  overflow: hidden;
+}
+
+.bento-card--primary .bento-progress {
   background: rgba(255,255,255,0.1);
 }
 
-.progress-fill {
+.bento-progress-fill {
   height: 100%;
-  background: #dc2626;
-  transition: width 1s ease-out;
+  background: linear-gradient(90deg, #ef4444, #f87171);
+  border-radius: 10px;
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.investment .progress-fill {
-  background: #3b82f6;
+.bento-progress-fill--alt {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+/* ── Animaciones ── */
+.animate-in {
+  animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>

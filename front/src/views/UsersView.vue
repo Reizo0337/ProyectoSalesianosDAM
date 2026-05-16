@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth';
 import api from '@/api/axios';
 import { useToast } from 'vue-toastification';
 import { useDialogStore } from '@/stores/dialog';
+import Table from '@/components/common/Table.vue';
 
 const toast = useToast();
 const dialogStore = useDialogStore();
@@ -197,7 +198,10 @@ onMounted(fetchData);
       </div>
       
       <div class="pending-grid">
-        <div v-for="user in pendingUsers" :key="user.IdUsuario" class="pending-card">
+        <div v-for="(user, index) in pendingUsers" 
+             :key="user.IdUsuario" 
+             class="pending-card animate-in"
+             :style="{ animationDelay: `${index * 0.1}s` }">
           <div class="user-info">
             <div class="avatar">{{ user.nombre.charAt(0) }}</div>
             <div class="details">
@@ -217,70 +221,38 @@ onMounted(fetchData);
         </div>
       </div>
     </section>
-
+ 
     <!-- Lista Global de Usuarios -->
     <section class="dashboard-section">
       <div class="section-header">
         <h2>Usuarios Activos</h2>
         <span class="badge blue">{{ verifiedUsers.length }}</span>
       </div>
-
-      <div v-if="loading" class="table-card">
-        <div class="loading-overlay">
-          <div class="spinner"></div>
-          <p>Sincronizando usuarios...</p>
-        </div>
-      </div>
-      <div v-else class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Usuario</th>
-              <th>Correo</th>
-              <th>Rol</th>
-              <th>Departamento</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="user in paginatedUsers" :key="user.IdUsuario" class="table-row">
-              <td>
-                <div class="user-cell">
-                  <div class="avatar-small">{{ user.nombre.charAt(0) }}</div>
-                  <span class="user-name">{{ user.nombre }} {{ user.apellidos }}</span>
-                </div>
-              </td>
-              <td><span class="cell-email">{{ user.correo }}</span></td>
-              <td>
-                <span class="status-badge" :class="getRolClass(user.rol)">
-                  {{ user.rol || 'Sin Rol' }}
-                </span>
-              </td>
-              <td>
-                <span class="dept-badge">
-                  {{ user.nombreDepartamento || 'Sin Dept.' }}
-                </span>
-              </td>
-              <td>
-                <div class="action-buttons">
-                  <button @click="openEdit(user)" class="action-btn edit" title="Editar usuario">
-                    <span class="material-symbols-outlined">edit</span>
-                  </button>
-                  <button @click="deleteUser(user.IdUsuario)" class="action-btn delete" title="Eliminar usuario">
-                    <span class="material-symbols-outlined">delete</span>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- Controles de Paginación -->
-        <div class="pagination-controls" v-if="totalPages > 1">
-          <button @click="prevPage" :disabled="currentPage === 1" class="page-btn">Anterior</button>
-          <span class="page-info">Página {{ currentPage }} de {{ totalPages }}</span>
-          <button @click="nextPage" :disabled="currentPage === totalPages" class="page-btn">Siguiente</button>
-        </div>
+ 
+      <div class="table-card">
+        <Table 
+          :loading="loading"
+          :headers="['Usuario', 'Correo', 'Rol', 'Departamento', 'Acciones']"
+          :data="verifiedUsers.map(user => [
+            { 
+              component: 'UserCell', 
+              props: { nombre: `${user.nombre} ${user.apellidos || ''}`.trim(), inicial: user.nombre.charAt(0) } 
+            },
+            user.correo,
+            { 
+              component: 'Badge', 
+              props: { text: user.rol || 'Sin Rol', class: getRolClass(user.rol) } 
+            },
+            user.nombreDepartamento || 'Sin Dept.',
+            {
+              type: 'actions',
+              actions: [
+                { icon: 'edit', label: 'Editar', class: 'btn-edit', onClick: () => openEdit(user) },
+                { icon: 'delete', label: 'Eliminar', class: 'btn-delete', onClick: () => deleteUser(user.IdUsuario) }
+              ]
+            }
+          ])"
+        />
       </div>
     </section>
 
@@ -504,94 +476,6 @@ onMounted(fetchData);
   justify-content: center;
 }
 
-/* Estilos de Tabla Unificados */
-.table-scroll { 
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  overflow: hidden;
-}
-
-table { width: 100%; border-collapse: collapse; }
-
-thead { background: #1e293b; }
-
-th { 
-  padding: 14px 16px; 
-  text-align: left; 
-  font-size: 11px; 
-  font-weight: 700; 
-  color: #f8fafc; 
-  text-transform: uppercase; 
-  letter-spacing: 0.05em; 
-}
-
-td { 
-  padding: 12px 16px; 
-  font-size: 13px; 
-  color: #334155; 
-  border-bottom: 1px solid #e2e8f0; 
-}
-
-.table-row { transition: background-color 0.15s; }
-.table-row:nth-child(even) { background-color: #f8fafc; }
-.table-row:hover { background-color: #f1f5f9; }
-
-.user-cell { display: flex; align-items: center; gap: 10px; }
-.avatar-small {
-  width: 28px;
-  height: 28px;
-  background: #e2e8f0;
-  color: #475569;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 11px;
-}
-
-.user-name { font-weight: 600; color: #0f172a; }
-.cell-email { color: #64748b; font-size: 12px; }
-
-/* Badges unificados */
-.status-badge {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.badge-admin { background: #fee2e2; color: #dc2626; }
-.badge-jefe { background: #fef9c3; color: #ca8a04; }
-.badge-user { background: #dcfce7; color: #16a34a; }
-.badge-default { background: #f1f5f9; color: #475569; }
-
-.dept-badge {
-  background: #eff6ff;
-  color: #2563eb;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-/* Acciones unificadas */
-.action-buttons { display: flex; gap: 8px; }
-
-.action-btn {
-  background: none;
-  border: none;
-  padding: 6px;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #94a3b8;
-  transition: all 0.2s;
-  background: #fef2f2;
-  color: #ef4444;
-  border-color: #fecaca;
-}
 
 /* Modales */
 .modal-overlay {
@@ -729,5 +613,21 @@ td {
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+
+/* ── Animaciones de Entrada ── */
+.animate-in {
+  animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

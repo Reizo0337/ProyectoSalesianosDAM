@@ -102,20 +102,21 @@ function formatDate(dateStr: string) {
     <table>
       <thead>
         <tr>
-          <th>Nº Orden</th>
-          <th>Fecha</th>
-          <th>Cantidad</th>
-          <th>Estado</th>
-          <th>Factura</th>
-          <th>Mensajes</th>
-          <th>Acciones</th>
+          <th style="width: 1%; white-space: nowrap;">Nº Orden</th>
+          <th style="width: 1%; white-space: nowrap;">Fecha</th>
+          <th style="width: 1%; white-space: nowrap;">Cantidad</th>
+          <th style="width: 1%; white-space: nowrap;">Estado</th>
+          <th style="width: 1%; white-space: nowrap;">Factura</th>
+          <th style="width: 1%; white-space: nowrap;">Mensajes</th>
+          <th style="width: 1%; white-space: nowrap;">Acciones</th>
         </tr>
       </thead>
-      <tbody>
+      <transition-group name="list" tag="tbody">
         <tr
-          v-for="order in paginatedOrders"
+          v-for="(order, index) in paginatedOrders"
           :key="order.idorden"
           class="table-row clickable"
+          :style="{ '--index': index }"
           @click="goToDetail(order.idorden)"
         >
           <td><span class="cell-order-num">{{ order.numero_orden || order.numero_plan || '-' }}</span></td>
@@ -165,7 +166,7 @@ function formatDate(dateStr: string) {
             </div>
           </td>
         </tr>
-      </tbody>
+      </transition-group>
     </table>
     <div class="pagination-controls" v-if="totalPages > 1">
       <button @click="prevPage" :disabled="currentPage === 1" class="page-btn">Anterior</button>
@@ -181,10 +182,25 @@ table { width: 100%; border-collapse: collapse; }
 thead { background: #1e293b; border-bottom: 2px solid #0f172a; }
 th { padding: 14px 16px; text-align: left; font-size: 12px; font-weight: 700; color: #f8fafc; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: none; }
 td { padding: 14px 16px; font-size: 13px; color: #334155; border-bottom: 1px solid #e2e8f0; }
-.table-row { transition: background-color 0.15s; }
+.table-row { 
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: rowIn 0.4s ease-out both;
+  animation-delay: calc(var(--index) * 0.05s);
+}
 .table-row:nth-child(even) { background-color: #f8fafc; }
 .table-row.clickable { cursor: pointer; }
-.table-row.clickable:hover { background-color: #e2e8f0; }
+.table-row.clickable:hover { 
+  background-color: #ffffff; 
+  transform: scale(1.005) translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  position: relative;
+}
+
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .cell-order-num { font-weight: 700; font-size: 13px; color: #dc2626; background: #fef2f2; padding: 4px 10px; border-radius: 4px; }
 .cell-date { font-size: 13px; color: #6b7280; font-variant-numeric: tabular-nums; }
 .cell-price { font-weight: 600; color: #1f2937; font-variant-numeric: tabular-nums; }

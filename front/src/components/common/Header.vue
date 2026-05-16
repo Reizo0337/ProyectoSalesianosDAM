@@ -4,11 +4,13 @@ import { useAuthStore } from '@/stores/auth';
 import { useOrderStore } from '@/stores/orders';
 import { useRouter } from 'vue-router';
 import { useToast } from 'vue-toastification';
+import { useUIStore } from '@/stores/ui';
 
 const toast = useToast();
 const authStore = useAuthStore();
 const orderStore = useOrderStore();
 const router = useRouter();
+const uiStore = useUIStore();
 const showUserMenu = ref(false);
 const showNotifMenu = ref(false);
 const notifications = ref<any[]>([]);
@@ -71,9 +73,17 @@ onUnmounted(() => {
 
 <template>
   <header class="app-header">
-    <!-- Logo area -->
-    <div class="header-logo">
-      <img src="/img/logoPrincipal.jpg" alt="Salesianos Logo" class="logo-img" />
+    <!-- Logo & Toggle area -->
+    <div class="header-left-side">
+      <button @click="uiStore.toggleSidebar()" class="sidebar-toggle-btn" :title="uiStore.isSidebarCollapsed ? 'Expandir menú' : 'Contraer menú'">
+        <span class="material-symbols-outlined">
+          {{ uiStore.isSidebarCollapsed ? 'menu_open' : 'menu' }}
+        </span>
+      </button>
+      <div class="header-logo" @click="router.push('/')">
+        <img src="/img/logoPrincipal.jpg" alt="Salesianos Logo" class="logo-img" />
+        <span class="app-brand-name">Zar<span>Gestion</span></span>
+      </div>
     </div>
 
     <!-- Right actions -->
@@ -181,25 +191,60 @@ onUnmounted(() => {
   color: #f8fafc;
 }
 
-/* ── Logo ── */
+/* ── Header Left ── */
+.header-left-side {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sidebar-toggle-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.sidebar-toggle-btn .material-symbols-outlined {
+  font-size: 22px;
+}
+
 .header-logo {
   display: flex;
   align-items: center;
-  flex-shrink: 0;
-  min-width: 200px;
-}
-.logo-img {
-  height: 40px;
-  width: auto;
-  object-fit: contain;
-  transition: transform 0.2s ease;
-  /* Truco para hacer el logo blanco y transparente sobre fondo oscuro */
-  filter: grayscale(1) invert(1) brightness(2);
-  mix-blend-mode: screen;
+  gap: 12px;
+  cursor: pointer;
 }
 
-.logo-img:hover {
-  transform: scale(1.03);
+.app-brand-name {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: white;
+}
+
+.app-brand-name span {
+  color: #ef4444;
+}
+
+.logo-img {
+  height: 32px;
+  width: auto;
+  filter: grayscale(1) invert(1) brightness(2);
+  mix-blend-mode: screen;
 }
 
 /* ── Search ── */

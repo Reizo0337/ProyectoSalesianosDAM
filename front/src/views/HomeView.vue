@@ -101,6 +101,47 @@ const viewTitle = computed(() => {
   return `Presupuestos: ${selectedDept.value}`;
 });
 
+// ── Lógica de Saludo Dinámico ──
+const greeting = computed(() => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Buenos días';
+  if (hour < 20) return 'Buenas tardes';
+  return 'Buenas noches';
+});
+
+const quickActions = computed(() => {
+  const actions = [
+    { label: 'Nueva Orden', icon: 'add_shopping_cart', to: '/ordenes', color: '#ef4444' },
+  ];
+  
+  // "Mi Presupuesto" solo tiene sentido para usuarios que no son Admins/Contables 
+  // (aunque en esta app el jefe de equipo es el que más lo usa)
+  if (!isAdminOrContable.value) {
+    actions.push({ label: 'Mi Presupuesto', icon: 'account_balance_wallet', to: '#stats', color: '#3b82f6' });
+  }
+
+  if (isAdminOrContable.value) {
+    actions.push({ label: 'Usuarios', icon: 'group', to: '/usuarios', color: '#8b5cf6' });
+  }
+  return actions;
+});
+
+// ── Lógica de KPIs ──
+const kpis = computed(() => {
+  const orders = ordenStore.orders || [];
+  const pendingCount = orders.filter(o => (o.estado || '').toLowerCase() !== 'cerrada').length;
+  const noInvoicesCount = orders.filter(o => parseInt(o.numfacturas || '0') === 0).length;
+  
+  const totalBudget = statsByType.value.presupuesto.total + statsByType.value.planInversion.total;
+  const totalSpent = statsByType.value.presupuesto.spent + statsByType.value.planInversion.spent;
+  const executionRate = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
+
+  return [
+    { label: 'Órdenes Activas', value: pendingCount, icon: 'inventory_2', color: '#ef4444' },
+    { label: 'Faltan Facturas', value: noInvoicesCount, icon: 'description', color: '#f59e0b' },
+    { label: 'Ejecución Global', value: executionRate + '%', icon: 'analytics', color: '#10b981' }
+  ];
+});
 
 const filteredOrdersTable = computed(() => {
   let orders = ordenStore.orders || [];
@@ -144,11 +185,9 @@ function animateValue(parent: any, key: string, target: number) {
 // Observamos statsByType para disparar la animación cuando cambien los datos
 watch(statsByType, (newVal) => {
   animateValue(animatedStats.value.presupuesto, 'remaining', newVal.presupuesto.remaining);
-  animateValue(animatedStats.value.presupuesto, 'total', newVal.presupuesto.total);
   animateValue(animatedStats.value.presupuesto, 'spent', newVal.presupuesto.spent);
   
   animateValue(animatedStats.value.planInversion, 'remaining', newVal.planInversion.remaining);
-  animateValue(animatedStats.value.planInversion, 'total', newVal.planInversion.total);
   animateValue(animatedStats.value.planInversion, 'spent', newVal.planInversion.spent);
 }, { deep: true, immediate: true });
 
@@ -156,16 +195,43 @@ watch(statsByType, (newVal) => {
 
 <template>
   <div class="dashboard-page">
-    <header class="dashboard-header">
-      <div class="header-content">
+    <header class="dashboard-header animate-in">
+      <!-- Row 1: Greeting -->
+      <div class="header-top-row">
+        <h2 class="dynamic-greeting">{{ greeting }}, <span>{{ authStore.user?.nombre }}</span></h2>
+      </div>
+
+      <!-- Row 2: Title + Buttons -->
+      <div class="header-main-row">
         <h1>{{ viewTitle }}</h1>
+        <div class="quick-actions-bar">
+          <RouterLink 
+            v-for="action in quickActions" 
+            :key="action.label" 
+            :to="action.to" 
+            class="quick-action-card"
+            :style="{ '--accent': action.color }"
+          >
+            <span class="material-symbols-outlined">{{ action.icon }}</span>
+            <span class="action-label">{{ action.label }}</span>
+          </RouterLink>
+        </div>
+      </div>
+
+      <!-- Row 3: Subtitle + KPIs -->
+      <div class="header-bottom-row">
         <p class="subtitle">Análisis detallado de recursos y ejecución financiera.</p>
+        <div class="kpi-grid-header">
+          <div v-for="kpi in kpis" :key="kpi.label" class="kpi-item-mini">
+            <span class="kpi-dot" :style="{ backgroundColor: kpi.color }"></span>
+            <span class="kpi-val-mini">{{ kpi.value }}</span>
+            <span class="kpi-lab-mini">{{ kpi.label }}</span>
+          </div>
+        </div>
       </div>
     </header>
 
-    <!-- Floating Department Buttons - Only for Admins and Contables -->
-    <div v-if="isAdminOrContable" class="dept-selector">
-
+    <div v-if="isAdminOrContable" class="dept-selector animate-in delay-1">
       <button 
         v-for="dept in uniqueDepartments" 
         :key="dept"
@@ -178,7 +244,7 @@ watch(statsByType, (newVal) => {
     </div>
 
     <!-- Presupuestos Summary Grid -->
-    <section class="dashboard-section">
+    <section class="dashboard-section animate-in delay-2">
       <div class="section-header">
         <span class="material-symbols-outlined">analytics</span>
         <h2>Estado Financiero Actual</h2>
@@ -195,7 +261,7 @@ watch(statsByType, (newVal) => {
               </div>
               <div class="budget-total">
                  <span class="sep">/</span>
-                 <span class="total-val">{{ Math.round(animatedStats.presupuesto.total).toLocaleString() }}€</span>
+                 <span class="total-val">{{ Math.round(statsByType.presupuesto.total).toLocaleString() }}€</span>
               </div>
            </div>
            <div class="budget-footer">
@@ -219,7 +285,7 @@ watch(statsByType, (newVal) => {
               </div>
               <div class="budget-total">
                  <span class="sep">/</span>
-                 <span class="total-val">{{ Math.round(animatedStats.planInversion.total).toLocaleString() }}€</span>
+                 <span class="total-val">{{ Math.round(statsByType.planInversion.total).toLocaleString() }}€</span>
               </div>
            </div>
            <div class="budget-footer">
@@ -236,7 +302,7 @@ watch(statsByType, (newVal) => {
     </section>
 
     <!-- 4. Permanent Intel (Orders Table - Now Outside) -->
-    <section class="dashboard-section">
+    <section class="dashboard-section animate-in delay-3">
       <div class="section-header">
         <span class="material-symbols-outlined">shopping_bag</span>
         <h2>{{ isAdminOrContable ? 'Registro Global de Órdenes' : 'Órdenes de Compra' }}</h2>
@@ -327,18 +393,37 @@ watch(statsByType, (newVal) => {
 
 .dashboard-header {
   display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 3.5rem;
+}
+
+.header-top-row {
+  margin-bottom: 4px;
+}
+
+.header-main-row {
+  display: flex;
   justify-content: space-between;
+  align-items: center; /* ¡ESTO alinea la mitad del botón con la mitad del título! */
+  margin-bottom: 12px;
+}
+
+.header-main-row h1 {
+  font-size: 2.75rem;
+  font-weight: 850;
+  color: #0f172a;
+  letter-spacing: -0.04em;
+  line-height: 1.1; /* Ajuste para centrar visualmente la masa del texto */
+  margin: 0;
+  display: flex;
   align-items: center;
 }
 
-.header-content h1 {
-  font-size: 3rem;
-  font-weight: 850;
-  letter-spacing: -0.04em;
-  background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 0.5rem;
+.header-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .subtitle {
@@ -347,12 +432,33 @@ watch(statsByType, (newVal) => {
   font-weight: 500;
 }
 
+.dynamic-greeting {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ef4444;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+.dynamic-greeting span {
+  color: #1e293b;
+}
+
+/* ── Quick Actions Grid ── */
+.quick-actions-grid {
+  display: flex;
+  gap: 12px;
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+
 .dept-selector {
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
   overflow-x: auto;
-  padding: 0.5rem;
-  margin: -1rem 0;
+  padding: 1.5rem 0.5rem; /* Aumentado padding vertical para evitar corte de sombras */
+  margin: -1.5rem 0;
   scrollbar-width: none;
 }
 
@@ -386,6 +492,41 @@ watch(statsByType, (newVal) => {
   color: white;
   border-color: #0f172a;
   box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.2);
+}
+
+/* ── KPI Grid ── */
+/* ── Header KPIs ── */
+.kpi-grid-header {
+  display: flex;
+  gap: 1.25rem;
+  padding-right: 4px;
+}
+
+.kpi-item-mini {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.9;
+}
+
+.kpi-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.kpi-val-mini {
+  font-size: 1.1rem;
+  font-weight: 850;
+  color: #1e293b;
+}
+
+.kpi-lab-mini {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .btn-primary {
@@ -618,6 +759,26 @@ watch(statsByType, (newVal) => {
 
 .investment .progress-fill {
   background: #3b82f6;
+}
+
+/* ── Animaciones de Entrada ── */
+.animate-in {
+  animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 </style>

@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useUIStore } from '@/stores/ui';
 
 const authStore = useAuthStore();
+const uiStore = useUIStore();
 const route = useRoute();
-const isCollapsed = ref(false);
+
+const isCollapsed = computed(() => uiStore.isSidebarCollapsed);
 
 const menuItems = [
   {
@@ -54,7 +57,7 @@ const bottomItems = [
 ];
 
 function toggleCollapse() {
-  isCollapsed.value = !isCollapsed.value;
+  uiStore.toggleSidebar();
 }
 </script>
 
@@ -65,11 +68,6 @@ function toggleCollapse() {
       <div class="nav-section">
         <div class="section-header-sidebar">
           <span v-if="!isCollapsed" class="nav-label">MENÚ PRINCIPAL</span>
-          <button @click="toggleCollapse" class="toggle-sidebar-btn" :title="isCollapsed ? 'Expandir' : 'Colapsar'">
-            <span class="material-symbols-outlined">
-              {{ isCollapsed ? 'menu_open' : 'menu' }}
-            </span>
-          </button>
         </div>
         
         <ul class="nav-list">
@@ -160,16 +158,16 @@ function toggleCollapse() {
 .section-header-sidebar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  margin-bottom: 12px;
-  min-height: 32px;
+  padding: 0 16px;
+  margin-bottom: 24px;
+  min-height: 24px;
 }
 
 .collapsed .section-header-sidebar {
-  justify-content: center;
   padding: 0;
+  justify-content: center;
 }
+
 
 .toggle-sidebar-btn {
   background: none;
@@ -222,8 +220,8 @@ function toggleCollapse() {
   font-weight: 800;
   letter-spacing: 1.5px;
   color: #64748b; /* Slate 500 */
-  padding: 0 12px;
-  margin-bottom: 12px;
+  padding: 0;
+  margin: 0;
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
@@ -294,19 +292,17 @@ function toggleCollapse() {
 }
 
 .nav-item.active {
-  background: #ef4444;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: #ffffff;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  font-weight: 700;
+  box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
 }
 
 .nav-item.active .nav-icon {
   color: #ffffff !important;
+  transform: scale(1.1);
 }
 
-.nav-item.active::before {
-  height: 20px;
-}
 
 .nav-icon {
   width: 20px;
