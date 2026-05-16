@@ -21,6 +21,12 @@ const editForm = ref({
   direccion: ''
 });
 
+const showCreateProductModal = ref(false);
+const productForm = ref({
+  nombre: '',
+  descripcion: ''
+});
+
 onMounted(async () => {
   if (supplierStore.suppliers.length === 0) {
     await supplierStore.fetchSuppliers();
@@ -82,6 +88,23 @@ async function handleRemove(productId: number) {
   }
 }
 
+async function handleCreateProduct() {
+  if (!productForm.value.nombre) return;
+  try {
+    await orderStore.createProduct({
+      nombre: productForm.value.nombre,
+      descripcion: productForm.value.descripcion,
+      idProveedor: String(id)
+    });
+    await supplierStore.fetchSupplierProducts(id);
+    await orderStore.fetchProducts();
+    showCreateProductModal.value = false;
+    productForm.value = { nombre: '', descripcion: '' };
+  } catch (err) {
+    alert('Error al crear el producto');
+  }
+}
+
 function goBack() {
   router.push('/proveedores');
 }
@@ -118,8 +141,12 @@ function goBack() {
              <button class="save-btn" @click="handleUpdate">Guardar Cambios</button>
            </template>
            <button class="assign-btn" @click="showAssignModal = true">
+             <span class="material-symbols-outlined">link</span>
+             Vincular Existente
+           </button>
+           <button class="create-product-btn" @click="showCreateProductModal = true">
              <span class="material-symbols-outlined">add_box</span>
-             Vincular Producto
+             Nuevo Producto
            </button>
         </div>
       </div>
@@ -166,7 +193,7 @@ function goBack() {
     <div v-if="showAssignModal" class="modal-overlay" @click.self="showAssignModal = false">
       <div class="modal-content animate-slide-up">
         <div class="modal-header">
-          <h2>Vincular Producto</h2>
+          <h2>Vincular Producto Existente</h2>
           <button @click="showAssignModal = false" class="close-btn">&times;</button>
         </div>
         <div class="modal-body">
@@ -187,6 +214,32 @@ function goBack() {
             <button class="submit-btn" :disabled="!selectedProductId" @click="handleAssign">Vincular</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Modal de Nuevo Producto -->
+    <div v-if="showCreateProductModal" class="modal-overlay" @click.self="showCreateProductModal = false">
+      <div class="modal-content animate-slide-up">
+        <div class="modal-header">
+          <h2>Nuevo Producto</h2>
+          <button @click="showCreateProductModal = false" class="close-btn">&times;</button>
+        </div>
+        <form @submit.prevent="handleCreateProduct" class="modal-body">
+          <div class="form-grid" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="form-group">
+              <label>Nombre del Producto</label>
+              <input v-model="productForm.nombre" required placeholder="Ej: Tornillos M8" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label>Descripción</label>
+              <textarea v-model="productForm.descripcion" placeholder="Descripción detallada del producto..." class="form-input" style="min-height: 80px; resize: vertical;"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="cancel-btn" @click="showCreateProductModal = false">Cancelar</button>
+            <button type="submit" class="submit-btn">Crear y Vincular</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -317,7 +370,23 @@ function goBack() {
   transition: all 0.2s;
 }
 
-.assign-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+.assign-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+
+.create-product-btn {
+  background: #dc2626;
+  color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 4px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.create-product-btn:hover { background: #b91c1c; }
 
 .info-grid {
   display: grid;

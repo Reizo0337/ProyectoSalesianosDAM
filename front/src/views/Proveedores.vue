@@ -173,22 +173,17 @@ function viewProducts(id: number) {
 
 <style scoped>
 .view-container {
-  padding: 2.5rem;
-  max-width: 1600px;
-  margin: 0 auto;
+  padding: 24px;
 }
 
 .header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;
 }
-.header-section h1 { font-size: 2.25rem; font-weight: 800; color: #1e293b; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
-.header-section p { color: #64748b; font-size: 1.1rem; }
+.header-section h1 { font-size: 28px; font-weight: 700; color: #1f2937; margin-bottom: 8px; }
+.header-section p { color: #6b7280; }
 .result-count-inline { font-weight: 600; color: #475569; margin-left: 8px; }
-
 .header-actions { display: flex; align-items: center; gap: 16px; }
+.result-count-inline { font-weight: 600; color: #475569; margin-left: 8px; }
 
 .search-box {
   display: flex; align-items: center; background: #f9fafb;

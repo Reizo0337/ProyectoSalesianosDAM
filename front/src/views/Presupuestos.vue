@@ -9,7 +9,7 @@ const presupuestoStore = usePresupuestoStore();
 
 const searchQuery = ref('');
 
-const headers = ['ID', 'Código', 'Nombre', 'Tipo', 'Cantidad', 'Gasto', 'Departamento'];
+const headers = ['ID', 'Código', 'Nombre', 'Tipo', 'Cantidad', 'Gasto', 'Departamento', ];
 
 const formatType = (type: string) => {
   const t = (type || '').toLowerCase();

@@ -18,7 +18,11 @@ public class Products {
 
     public List<Map<String, String>> getAllProducts() {
         List<Map<String, String>> list = new ArrayList<>();
-        String sql = "SELECT * FROM productos ORDER BY Nombre ASC";
+        String sql = "SELECT p.idProducto, p.Nombre, p.Descripcion, " +
+                     "(SELECT prov.Nombre FROM proveedores prov JOIN productosProveedores pp ON prov.idProveedor = pp.idProveedor WHERE pp.idProducto = p.idProducto LIMIT 1) as proveedor, " +
+                     "(SELECT AVG(PrecioUnitario) FROM ordencompraproductos WHERE idProducto = p.idProducto) as precio_medio " +
+                     "FROM productos p " +
+                     "ORDER BY p.Nombre ASC";
         try (Connection conn = DatabaseManager.getConnection("webapp");
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {

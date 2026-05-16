@@ -29,6 +29,11 @@ const menuItems = [
     icon: 'local_shipping',
   },
   {
+    label: 'Productos',
+    to: '/productos',
+    icon: 'inventory_2',
+  },
+  {
     label: 'Historico',
     to: '/historico',
     icon: 'history',
