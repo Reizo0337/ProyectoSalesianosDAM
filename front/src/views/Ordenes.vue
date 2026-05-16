@@ -75,7 +75,7 @@ watch(() => authStore.user, (user) => {
     <div class="table-card">
       <div v-if="orderStore.orders.length > 0">
         <div class="table-scroll">
-          <OrderTable :orders="filteredOrders" />
+          <OrderTable :orders="filteredOrders" @refresh="refreshOrders" />
         </div>
       </div>
       <div v-else-if="orderStore.loading" class="loading-state">

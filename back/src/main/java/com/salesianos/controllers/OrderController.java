@@ -50,10 +50,26 @@ public class OrderController {
                 return handleNotificaciones(request, response, session);
             case "/notificaciones/read":
                 return handleNotificacionesRead(request, response, session);
+            case "/ordenes/delete":
+                return handleOrderDelete(request, response, session);
             default:
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 return JsonUtil.errorJson("Ruta de órdenes no encontrada");
         }
+    }
+
+    private String handleOrderDelete(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws IOException {
+        String body = JsonUtil.getRequestBody(request);
+        String idStr = JsonUtil.findJsonField(body, "id");
+        if (idStr == null) return JsonUtil.errorJson("Falta ID de la orden");
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> user = (Map<String, String>) session.getAttribute("user");
+        String deptName = user.get("idDepartamento");
+        String userRole = user.get("rol");
+
+        Orders util = new Orders();
+        return util.deleteOrder(Integer.parseInt(idStr), deptName, userRole);
     }
 
     private String handleOrders(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws IOException {
@@ -262,17 +278,44 @@ public class OrderController {
 
     private String handleFileUpload(HttpServletRequest request) {
         try {
+            HttpSession session = request.getSession();
+            @SuppressWarnings("unchecked")
+            Map<String, String> user = (Map<String, String>) session.getAttribute("user");
+            Role role = Role.fromString(user.get("rol"));
+            
+            if (!role.canManageInvoices()) {
+                return JsonUtil.errorJson("No tienes permiso para gestionar facturas");
+            }
+
             String idParam = request.getParameter("id");
             Part filePart = request.getPart("file");
             if (idParam != null && filePart != null) {
                 long orderId = Long.parseLong(idParam);
                 byte[] data = readPartBytes(filePart);
                 Orders util = new Orders();
+                
+                // Extra check for Jefe: must be their dept
+                if (role == Role.JEFE_EQUIPO) {
+                   String sqlCheck = "SELECT d.Nombre FROM ordencompra oc " +
+                                     "JOIN presupuesto p ON oc.idPresupuesto = p.idPresupuesto " +
+                                     "JOIN departamento d ON p.idDepartamento = d.idDepartamento " +
+                                     "WHERE oc.idOrden = ?";
+                   try (java.sql.Connection conn = com.salesianos.utils.DatabaseManager.getConnection("webapp");
+                        java.sql.PreparedStatement stmt = conn.prepareStatement(sqlCheck)) {
+                       stmt.setInt(1, (int)orderId);
+                       try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                           if (rs.next() && !user.get("idDepartamento").equals(rs.getString("Nombre"))) {
+                               return JsonUtil.errorJson("Solo puedes subir facturas de tu propio departamento");
+                           }
+                       }
+                   }
+                }
+
                 boolean success = util.addInvoice(orderId, data);
                 if (success) {
                     return JsonUtil.messageJson("Factura subida correctamente");
                 } else {
-                    return JsonUtil.errorJson("No se puede subir factura: la orden ya está cerrada.");
+                    return JsonUtil.errorJson("Error al procesar la factura en la base de datos.");
                 }
             }
             return JsonUtil.errorJson("Faltan parámetros id o archivo");

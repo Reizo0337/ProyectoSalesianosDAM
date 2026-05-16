@@ -80,9 +80,14 @@ const canComment = computed(() => {
 });
 
 const canManageInvoices = computed(() => {
-  const rol = authStore.user?.rol;
-  if (detail.value && (detail.value.order.estado || '').toLowerCase() === 'cerrada') return false;
-  return rol === 'Administrador' || rol === 'Contable';
+  const user = authStore.user;
+  if (!user || !detail.value) return false;
+  
+  if (user.rol === 'Administrador' || user.rol === 'Contable') return true;
+  if (user.rol === 'Jefe de Equipo') {
+    return user.idDepartamento === detail.value.order.dep_nombre;
+  }
+  return false;
 });
 
 async function refreshDetail() {

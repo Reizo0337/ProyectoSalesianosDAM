@@ -130,7 +130,29 @@ function handleFileChange(e: Event) {
   }
 }
 
+// Check if we are over budget
+const currentBudget = computed(() => {
+  if (!form.idPresupuesto) return null;
+  return presupuestoStore.presupuestos.find(p => p.idpresupuesto.toString() === form.idPresupuesto);
+});
+
+const remainingBudget = computed(() => {
+  if (!currentBudget.value) return 0;
+  const total = parseFloat(currentBudget.value.cantidad) || 0;
+  const spent = parseFloat(currentBudget.value.gasto) || 0;
+  return total - spent;
+});
+
+const isOverBudget = computed(() => {
+  return totalAmount.value > remainingBudget.value;
+});
+
 async function submitOrder() {
+  if (isOverBudget.value) {
+    alert('No hay presupuesto suficiente para esta orden.');
+    return;
+  }
+  
   loading.value = true;
   try {
     const finalOrderNumber = form.usePlan ? '' : orderNumberPreview.value;
@@ -155,6 +177,8 @@ async function submitOrder() {
       }
       emit('success');
       emit('close');
+    } else {
+      alert(res.message || 'Error al crear la orden');
     }
   } catch (err) {
     console.error(err);
@@ -270,9 +294,14 @@ const formatType = (type: string) => {
              </div>
           </div>
 
-          <div class="form-group total-group">
-            <label>Importe Total (€) — calculado automáticamente</label>
-            <input :value="totalAmount.toFixed(2)" type="number" step="0.01" class="form-input highlight" readonly />
+          <div class="form-group total-group" :class="{ 'error-budget': isOverBudget }">
+            <div class="budget-info">
+               <span class="budget-label">Presupuesto Disponible:</span>
+               <span class="budget-val" :class="{ 'insufficient': isOverBudget }">{{ remainingBudget.toFixed(2) }}€</span>
+            </div>
+            <label>Importe Total (€)</label>
+            <input :value="totalAmount.toFixed(2)" type="number" step="0.01" class="form-input highlight" :class="{ 'input-error': isOverBudget }" readonly />
+            <p v-if="isOverBudget" class="error-msg">El importe supera el presupuesto disponible.</p>
           </div>
         </div>
 
@@ -302,8 +331,9 @@ const formatType = (type: string) => {
             </ul>
           </div>
           
-          <div class="review-box">
-             <p><strong>Confirmación:</strong> Estás a punto de crear una orden por <strong>{{ form.Cantidad }}€</strong>.</p>
+          <div class="review-box" :class="{ 'error-border': isOverBudget }">
+             <p v-if="!isOverBudget"><strong>Confirmación:</strong> Estás a punto de crear una orden por <strong>{{ form.Cantidad }}€</strong>.</p>
+             <p v-else class="error-text"><strong>ERROR:</strong> No puedes finalizar la orden porque supera el presupuesto.</p>
           </div>
         </div>
       </div>
@@ -311,8 +341,8 @@ const formatType = (type: string) => {
       <div class="modal-footer">
         <button v-if="step > 1" class="nav-btn secondary" @click="prevStep">Anterior</button>
         <div class="spacer"></div>
-        <button v-if="step < 3" class="nav-btn primary" @click="nextStep">Siguiente</button>
-        <button v-else class="nav-btn submit" :disabled="loading" @click="submitOrder">
+        <button v-if="step < 3" class="nav-btn primary" :disabled="step === 2 && isOverBudget" @click="nextStep">Siguiente</button>
+        <button v-else class="nav-btn submit" :disabled="loading || isOverBudget" @click="submitOrder">
           {{ loading ? 'Creando...' : 'Finalizar Pedido' }}
         </button>
       </div>
@@ -594,6 +624,39 @@ const formatType = (type: string) => {
 .nav-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .spacer { flex: 1; }
+
+.budget-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.budget-label { color: #64748b; font-weight: 500; }
+.budget-val { color: #16a34a; font-weight: 700; }
+.budget-val.insufficient { color: #ef4444; }
+
+.error-msg {
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.input-error {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+}
+
+.error-border {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+}
+
+.error-text {
+  color: #ef4444;
+  margin: 0;
+}
 
 .new-product-form {
   background: #f8fafc;

@@ -198,7 +198,6 @@ onMounted(() => {
 .type-stats {
   color: white;
   border: none;
-  min-width: 280px;
 }
 
 .type-stats .icon-wrapper {

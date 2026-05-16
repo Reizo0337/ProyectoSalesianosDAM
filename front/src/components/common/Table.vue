@@ -407,27 +407,41 @@ td {
 }
 
 .action-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 4px;
-  border: 1.5px solid #f3f4f6;
-  background: #ffffff;
+  border: none;
+  background: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #64748b;
+  color: #94a3b8;
 }
 
 .action-btn:hover {
-  background: #f9fafb;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.btn-edit:hover {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+}
+
+.btn-delete:hover {
+  background: #fef2f2 !important;
+  color: #ef4444 !important;
+}
+
+.btn-view:hover, .btn-products:hover {
+  background: #eef2ff !important;
+  color: #4f46e5 !important;
 }
 
 .action-btn .material-symbols-outlined {
-  font-size: 18px;
+  font-size: 20px;
 }
 
 /* ─── Status Badge ────────────────────────────── */

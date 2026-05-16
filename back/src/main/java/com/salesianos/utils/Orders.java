@@ -399,12 +399,12 @@ public class Orders {
                 int rows = stmt.executeUpdate();
                 
                 if (rows > 0) {
-                    // If transitioning to "Aprobada", add to budget's 'gasto'
-                    if ("Aprobada".equalsIgnoreCase(newStatus) && !"Aprobada".equalsIgnoreCase(oldStatus)) {
+                    // BUDGET LOGIC: Subtract from budget only when order is "Cerrada"
+                    if ("Cerrada".equalsIgnoreCase(newStatus) && !"Cerrada".equalsIgnoreCase(oldStatus)) {
                         updateBudgetGasto(budgetId, amount, true);
                     } 
-                    // If transitioning FROM "Aprobada" to something else, subtract from budget's 'gasto'
-                    else if (!"Aprobada".equalsIgnoreCase(newStatus) && "Aprobada".equalsIgnoreCase(oldStatus)) {
+                    // If somehow moving OUT of "Cerrada" (reopening), add back to budget
+                    else if (!"Cerrada".equalsIgnoreCase(newStatus) && "Cerrada".equalsIgnoreCase(oldStatus)) {
                         updateBudgetGasto(budgetId, amount, false);
                     }
 
@@ -472,20 +472,27 @@ public class Orders {
     }
 
     public boolean addInvoice(long orderId, byte[] fileData) {
-        String sqlCheck = "SELECT Estado FROM ordencompra WHERE idOrden = ?";
+        String sqlInfo = "SELECT Cantidad, idPresupuesto, Estado FROM ordencompra WHERE idOrden = ?";
         String sqlInsert = "INSERT INTO facturas (idOrdenCompra, blobFactura) VALUES (?, ?)";
         String sqlUpdate = "UPDATE ordencompra SET Estado = 'Cerrada' WHERE idOrden = ?";
+        
         try (Connection conn = DatabaseManager.getConnection("webapp")) {
-            // Check status first
-            try (PreparedStatement stmtCheck = conn.prepareStatement(sqlCheck)) {
-                stmtCheck.setLong(1, orderId);
-                try (ResultSet rs = stmtCheck.executeQuery()) {
-                    if (rs.next() && "Cerrada".equalsIgnoreCase(rs.getString("Estado"))) {
-                        return false;
-                    }
+            double amount = 0;
+            int budgetId = 0;
+            String status = "";
+
+            try (PreparedStatement stmtInfo = conn.prepareStatement(sqlInfo)) {
+                stmtInfo.setLong(1, orderId);
+                try (ResultSet rs = stmtInfo.executeQuery()) {
+                    if (rs.next()) {
+                        amount = rs.getDouble("Cantidad");
+                        budgetId = rs.getInt("idPresupuesto");
+                        status = rs.getString("Estado");
+                    } else return false;
                 }
             }
-            
+
+            boolean alreadyClosed = "Cerrada".equalsIgnoreCase(status);
             boolean originalAutoCommit = conn.getAutoCommit();
             try (PreparedStatement stmtInsert = conn.prepareStatement(sqlInsert);
                  PreparedStatement stmtUpdate = conn.prepareStatement(sqlUpdate)) {
@@ -496,8 +503,13 @@ public class Orders {
                 stmtInsert.setBytes(2, fileData);
                 stmtInsert.executeUpdate();
                 
-                stmtUpdate.setLong(1, orderId);
-                stmtUpdate.executeUpdate();
+                if (!alreadyClosed) {
+                    stmtUpdate.setLong(1, orderId);
+                    stmtUpdate.executeUpdate();
+                    
+                    // RESTAR DEL PRESUPUESTO SOLO LA PRIMERA VEZ (AL CERRAR)
+                    updateBudgetGasto(budgetId, amount, true);
+                }
                 
                 conn.commit();
                 return true;
@@ -673,5 +685,65 @@ public class Orders {
             LOGGER.log(Level.SEVERE, "Error marking notification as read", e);
         }
         return false;
+    }
+    public String deleteOrder(int orderId, String deptName, String userRole) {
+        String sqlCheck = "SELECT oc.Estado, d.Nombre as dep_nombre FROM ordencompra oc " +
+                          "JOIN presupuesto p ON oc.idPresupuesto = p.idPresupuesto " +
+                          "JOIN departamento d ON p.idDepartamento = d.idDepartamento " +
+                          "WHERE oc.idOrden = ?";
+        
+        try (Connection conn = DatabaseManager.getConnection("webapp")) {
+            try (PreparedStatement stmt = conn.prepareStatement(sqlCheck)) {
+                stmt.setInt(1, orderId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        String status = rs.getString("Estado");
+                        String orderDept = rs.getString("dep_nombre");
+                        
+                        boolean isAdmin = "Admin".equals(userRole) || "Administrador".equals(userRole);
+                        boolean isMyDeptHead = "Jefe de Equipo".equals(userRole) && orderDept.equals(deptName);
+                        
+                        if (!isAdmin && !isMyDeptHead) {
+                            return JsonUtil.errorJson("No tienes permiso para borrar esta orden.");
+                        }
+                        
+                        if ("Cerrada".equalsIgnoreCase(status)) {
+                            return JsonUtil.errorJson("No se pueden borrar órdenes cerradas.");
+                        }
+                    } else {
+                        return JsonUtil.errorJson("Orden no encontrada.");
+                    }
+                }
+            }
+
+            String[] deleteSqls = {
+                "DELETE FROM comentarios_orden WHERE idOrden = ?",
+                "DELETE FROM notificaciones WHERE idOrden = ?",
+                "DELETE FROM facturas WHERE idOrdenCompra = ?",
+                "DELETE FROM ordencompraproductos WHERE idOrdenCompra = ?",
+                "DELETE FROM ordencompra WHERE idOrden = ?"
+            };
+
+            conn.setAutoCommit(false);
+            try {
+                for (String sql : deleteSqls) {
+                    try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                        stmt.setInt(1, orderId);
+                        stmt.executeUpdate();
+                    }
+                }
+                conn.commit();
+                return JsonUtil.messageJson("Orden eliminada correctamente");
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error deleting order: " + orderId, e);
+            return JsonUtil.errorJson("Error al eliminar la orden: " + e.getMessage());
+        }
     }
 }

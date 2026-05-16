@@ -12,6 +12,8 @@ const ordenStore = useOrderStore();
 
 const rolUsuario = computed(() => authStore.user?.rol);
 const selectedDept = ref<string>('Resumen Global');
+const currentYear = new Date().getFullYear();
+const selectedYear = ref<number>(currentYear);
 
 const isAdminOrContable = computed(() => {
   const rol = authStore.user?.rol;
@@ -23,23 +25,20 @@ async function refreshData() {
   const dep = authStore.user?.idDepartamento;
 
   if (rol === 'Administrador' || rol === 'Contable') {
-    await presupuestoStore.getAllPresupuestos();
-    await ordenStore.getAllOrders();
+    await presupuestoStore.getAllPresupuestos(selectedYear.value);
+    await ordenStore.getAllOrders(selectedYear.value);
   } else if (dep) {
-    await presupuestoStore.getPresupuestosByDept(dep);
-    await ordenStore.getOrdersByDept(dep);
+    await presupuestoStore.getPresupuestosByDept(dep, selectedYear.value);
+    await ordenStore.getOrdersByDept(dep, selectedYear.value);
     
-    // Auto-select the user's department if available
     if (presupuestoStore.presupuestos.length > 0) {
       selectedDept.value = presupuestoStore.presupuestos[0].nombredepartamento;
     }
   } 
 }
 
-watch(() => authStore.user, (user) => {
-  if (user) {
-    refreshData();
-  }
+watch(() => authStore.user, () => {
+  refreshData();
 }, { immediate: true });
 
 
@@ -139,65 +138,61 @@ const filteredOrdersTable = computed(() => {
       </button>
     </div>
 
-    <!-- 1. Presupuestos Summary -->
+    <!-- Presupuestos Summary Grid -->
     <section class="dashboard-section">
       <div class="section-header">
-        <span class="material-symbols-outlined">payments</span>
-        <h2>Presupuestos Ordinarios</h2>
+        <span class="material-symbols-outlined">analytics</span>
+        <h2>Estado Financiero Actual</h2>
       </div>
-      <div class="statistics-grid">
-        <Card
-          type="stats"
-          title="Asignado"
-          :data="statsByType.presupuesto.total"
-          suffix="€"
-          background="#0f172a"
-        />
-        <Card
-          type="stats"
-          title="Gastado"
-          :data="statsByType.presupuesto.spent"
-          suffix="€"
-          background="#1e293b"
-        />
-        <Card
-          type="stats"
-          title="Disponible"
-          :data="statsByType.presupuesto.remaining"
-          suffix="€"
-          background="#334155"
-        />
-      </div>
-    </section>
+      
+      <div class="stats-summary-grid">
+        <!-- 1. Presupuestos Summary -->
+        <div class="premium-budget-card">
+           <div class="budget-type-label">Ordinario</div>
+           <div class="budget-main">
+              <div class="budget-available">
+                 <span class="amount">{{ statsByType.presupuesto.remaining.toLocaleString() }}</span>
+                 <span class="currency">€</span>
+              </div>
+              <div class="budget-total">
+                 <span class="sep">/</span>
+                 <span class="total-val">{{ statsByType.presupuesto.total.toLocaleString() }}€</span>
+              </div>
+           </div>
+           <div class="budget-footer">
+              <div class="spent-tag">
+                 <span class="label">Gastado</span>
+                 <span class="val">{{ statsByType.presupuesto.spent.toLocaleString() }}€</span>
+              </div>
+           </div>
+           <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: (statsByType.presupuesto.spent / statsByType.presupuesto.total * 100) + '%' }"></div>
+           </div>
+        </div>
 
-    <!-- 2. Plan de Inversión Summary -->
-    <section class="dashboard-section">
-      <div class="section-header">
-        <span class="material-symbols-outlined">trending_up</span>
-        <h2>Planes de Inversión</h2>
-      </div>
-      <div class="statistics-grid">
-        <Card
-          type="stats"
-          title="Inversión Prevista"
-          :data="statsByType.planInversion.total"
-          suffix="€"
-          background="#0f172a"
-        />
-        <Card
-          type="stats"
-          title="Inversión Ejecutada"
-          :data="statsByType.planInversion.spent"
-          suffix="€"
-          background="#1e293b"
-        />
-        <Card
-          type="stats"
-          title="Pendiente"
-          :data="statsByType.planInversion.remaining"
-          suffix="€"
-          background="#334155"
-        />
+        <!-- 2. Plan de Inversión Summary -->
+        <div class="premium-budget-card investment">
+           <div class="budget-type-label">Plan Inversión</div>
+           <div class="budget-main">
+              <div class="budget-available">
+                 <span class="amount">{{ statsByType.planInversion.remaining.toLocaleString() }}</span>
+                 <span class="currency">€</span>
+              </div>
+              <div class="budget-total">
+                 <span class="sep">/</span>
+                 <span class="total-val">{{ statsByType.planInversion.total.toLocaleString() }}€</span>
+              </div>
+           </div>
+           <div class="budget-footer">
+              <div class="spent-tag">
+                 <span class="label">Ejecutado</span>
+                 <span class="val">{{ statsByType.planInversion.spent.toLocaleString() }}€</span>
+              </div>
+           </div>
+           <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: (statsByType.planInversion.spent / statsByType.planInversion.total * 100) + '%' }"></div>
+           </div>
+        </div>
       </div>
     </section>
 
@@ -223,6 +218,65 @@ const filteredOrdersTable = computed(() => {
 </template>
 
 <style scoped>
+.year-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 0.625rem 1.25rem;
+  border-radius: 4px;
+  color: #64748b;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.year-select {
+  border: none;
+  background: transparent;
+  font-weight: 700;
+  color: #0f172a;
+  cursor: pointer;
+  outline: none;
+  font-size: 1rem;
+}
+
+.no-year-selected {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8rem 2rem;
+  text-align: center;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  gap: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+
+.large-icon {
+  font-size: 6rem !important;
+  color: #f1f5f9;
+  background: #f8fafc;
+  padding: 2rem;
+  border-radius: 50%;
+}
+
+.no-year-selected h2 {
+  font-size: 2rem;
+  color: #0f172a;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+
+.no-year-selected p {
+  color: #64748b;
+  max-width: 600px;
+  font-size: 1.2rem;
+  line-height: 1.6;
+}
+
 .dashboard-page {
   padding: 2.5rem;
   max-width: 1600px;
@@ -389,5 +443,142 @@ const filteredOrdersTable = computed(() => {
   to { transform: rotate(360deg); }
 }
 
+
+.stats-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 1024px) {
+  .stats-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.budget-type-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.5;
+  margin-bottom: -8px;
+}
+
+.premium-budget-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-radius: 4px;
+  padding: 32px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: transform 0.3s;
+}
+
+.premium-budget-card:hover {
+  transform: translateY(-4px);
+}
+
+.premium-budget-card.investment {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+}
+
+.budget-main {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.budget-available {
+  display: flex;
+  align-items: baseline;
+}
+
+.budget-available .amount {
+  font-size: 4rem;
+  font-weight: 850;
+  letter-spacing: -2px;
+  line-height: 1;
+}
+
+.budget-available .currency {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-left: 4px;
+  opacity: 0.8;
+}
+
+.budget-total {
+  display: flex;
+  align-items: baseline;
+  color: rgba(255,255,255,0.5);
+  font-weight: 600;
+}
+
+.budget-total .sep {
+  font-size: 2rem;
+  margin-right: 8px;
+}
+
+.budget-total .total-val {
+  font-size: 1.25rem;
+}
+
+.budget-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.spent-tag {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  background: rgba(255,255,255,0.05);
+  padding: 10px 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.spent-tag .label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+  font-weight: 700;
+}
+
+.spent-tag .val {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fb7185; /* Soft red for spent */
+}
+
+.investment .spent-tag .val {
+  color: #38bdf8; /* Soft blue for investment execution */
+}
+
+.progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+}
+
+.progress-fill {
+  height: 100%;
+  background: #dc2626;
+  transition: width 1s ease-out;
+}
+
+.investment .progress-fill {
+  background: #3b82f6;
+}
 
 </style>

@@ -29,7 +29,7 @@ public enum Role {
 
     // Permission Groups
     public boolean canManageInvoices() {
-        return this == ADMIN || this == ADMINISTRADOR || this == CONTABLE;
+        return this == ADMIN || this == ADMINISTRADOR || this == CONTABLE || this == JEFE_EQUIPO;
     }
 
     public boolean canComment() {

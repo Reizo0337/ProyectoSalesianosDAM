@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import { useOrderStore } from '@/stores/orders';
 
 interface Order {
   idorden: number;
@@ -17,6 +19,8 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
+const authStore = useAuthStore();
+const orderStore = useOrderStore();
 
 const currentPage = ref(1);
 const pageSize = 10;
@@ -40,10 +44,34 @@ watch(() => props.orders, () => {
   currentPage.value = 1;
 });
 
-const emit = defineEmits(['edit']);
+const emit = defineEmits(['edit', 'refresh']);
 
 function goToDetail(orderId: number) {
   router.push(`/ordenes/${orderId}`);
+}
+
+function canDelete(order: Order) {
+  const user = authStore.user;
+  if (!user) return false;
+  const isAdmin = user.rol === 'Administrador';
+  const isJefe = user.rol === 'Jefe de Equipo';
+  return (isAdmin || isJefe) && (order.estado || '').toLowerCase() !== 'cerrada';
+}
+
+async function handleDelete(e: Event, orderId: number) {
+  e.stopPropagation();
+  if (confirm('¿Estás seguro de eliminar esta orden?')) {
+    try {
+      const res = await orderStore.deleteOrder(orderId);
+      if (res.status === 'success') {
+        emit('refresh');
+      } else {
+        alert(res.message || 'Error al eliminar');
+      }
+    } catch (err) {
+      alert('Error de conexión al eliminar la orden');
+    }
+  }
 }
 
 function formatDate(dateStr: string) {
@@ -67,6 +95,7 @@ function formatDate(dateStr: string) {
           <th>Cantidad</th>
           <th>Estado</th>
           <th>Factura</th>
+          <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -96,6 +125,18 @@ function formatDate(dateStr: string) {
             <span class="factura-badge" :class="parseInt(order.numfacturas || '0') > 0 ? 'has-factura' : 'no-factura'">
               {{ parseInt(order.numfacturas || '0') > 0 ? 'Si' : 'No' }}
             </span>
+          </td>
+          <td>
+            <div class="actions-cell">
+              <button 
+                v-if="canDelete(order)" 
+                class="delete-icon-btn" 
+                @click="handleDelete($event, order.idorden)"
+                title="Eliminar orden"
+              >
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -130,11 +171,11 @@ td { padding: 14px 16px; font-size: 13px; color: #334155; border-bottom: 1px sol
 .has-factura { background: #dcfce7; color: #16a34a; }
 .no-factura { background: #f3f4f6; color: #9ca3af; }
 
-.edit-icon-btn {
+.delete-icon-btn {
   background: none;
   border: none;
-  color: #dc2626;
-  padding: 8px;
+  color: #94a3b8;
+  padding: 6px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
@@ -143,9 +184,13 @@ td { padding: 14px 16px; font-size: 13px; color: #334155; border-bottom: 1px sol
   justify-content: center;
 }
 
-.edit-icon-btn:hover {
-  background: #fef2f2;
-  color: #b91c1c;
+.delete-icon-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.delete-icon-btn .material-symbols-outlined {
+  font-size: 20px;
 }
 
 .pagination-controls {

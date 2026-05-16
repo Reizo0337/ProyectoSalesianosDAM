@@ -2,15 +2,29 @@
 import { onMounted, computed, ref, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useOrderStore } from '@/stores/orders';
+import { usePresupuestoStore } from '@/stores/presupuesto';
 import OrderTable from '../components/orders/OrderTable.vue';
+import Table from '../components/common/Table.vue';
 
 const authStore = useAuthStore();
 const orderStore = useOrderStore();
+const presupuestoStore = usePresupuestoStore();
 
 const currentYear = new Date().getFullYear();
-const selectedYear = ref(currentYear);
+const selectedYear = ref(currentYear - 1); // Por defecto un año atrás para el histórico
 const years = ref<number[]>([]);
 const searchQuery = ref('');
+const activeTab = ref('ordenes'); // 'ordenes' o 'presupuestos'
+
+const isInvestment = (p: any) => {
+  const t = (p.type || p.Type || '').toLowerCase();
+  return t === 'planinversion' || t.includes('inversion') || t.includes('plan');
+};
+
+const formatType = (p: any) => {
+  if (isInvestment(p)) return 'Plan Inversión';
+  return 'Presupuesto Ordinario';
+};
 
 const filteredOrders = computed(() => {
   if (!searchQuery.value.trim()) return orderStore.orders;
@@ -23,31 +37,50 @@ const filteredOrders = computed(() => {
   );
 });
 
-async function refreshOrders() {
+async function refreshData() {
   const role = authStore.user?.rol;
   const dept = (role === 'Administrador' || role === 'Contable') ? 'Admin' : authStore.user?.idDepartamento;
-  if (dept) {
+  if (!dept) return;
+
+  if (activeTab.value === 'ordenes') {
     await orderStore.getOrdersByDept(dept, selectedYear.value);
+  } else {
+    if (role === 'Administrador' || role === 'Contable') {
+      await presupuestoStore.getAllPresupuestos(selectedYear.value);
+    } else {
+      await presupuestoStore.getPresupuestosByDept(dept, selectedYear.value);
+    }
   }
 }
+
+const handleCloneToCurrent = async () => {
+  const ok = await presupuestoStore.cloneBudgets(selectedYear.value, currentYear);
+  if (ok) {
+    alert(`Presupuestos de ${selectedYear.value} clonados correctamente al año ${currentYear}`);
+  } else {
+    alert('Error al clonar los presupuestos. Es posible que ya existan presupuestos para el año actual.');
+  }
+};
 
 watch(() => authStore.user, async (user) => {
     if (user) {
       years.value = await orderStore.fetchYears();
       if (years.value.length === 0) years.value = [currentYear, currentYear - 1];
       
-      // Select first year available
-      if (years.value.length > 0) {
-        selectedYear.value = years.value[0];
+      // Select first historical year if available
+      const histYears = years.value.filter(y => y < currentYear);
+      if (histYears.length > 0) {
+        selectedYear.value = histYears[0];
+      } else {
+        selectedYear.value = currentYear - 1;
       }
       
-      await refreshOrders();
+      await refreshData();
     }
 }, { immediate: true });
 
-
-watch(selectedYear, () => {
-  refreshOrders();
+watch([selectedYear, activeTab], () => {
+  refreshData();
 });
 </script>
 
@@ -55,43 +88,84 @@ watch(selectedYear, () => {
   <div class="view-container">
     <div class="header-section">
       <div class="title-box">
-        <h1>Histórico de Órdenes</h1>
-        <p>Consulta de pedidos de años anteriores.</p>
+        <h1>Histórico del Centro</h1>
+        <p>Consulta de registros financieros y presupuestarios de ejercicios anteriores.</p>
       </div>
       
-      <div class="year-selector">
-        <label>Año de Ejercicio</label>
-        <div class="select-wrapper">
-          <select v-model="selectedYear" class="year-select">
-            <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-          </select>
-          <svg class="select-icon" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"></polyline>
-          </svg>
+      <div class="header-controls">
+        <div class="tab-switcher">
+          <button :class="{ active: activeTab === 'ordenes' }" @click="activeTab = 'ordenes'">
+            <span class="material-symbols-outlined">shopping_cart</span>
+            Órdenes
+          </button>
+          <button :class="{ active: activeTab === 'presupuestos' }" @click="activeTab = 'presupuestos'">
+            <span class="material-symbols-outlined">payments</span>
+            Presupuestos
+          </button>
+        </div>
+
+        <div class="year-selector">
+          <label>Ejercicio</label>
+          <div class="select-wrapper">
+            <select v-model="selectedYear" class="year-select">
+              <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+            </select>
+          </div>
         </div>
       </div>
     </div>
 
+    <div v-if="activeTab === 'presupuestos'" class="actions-bar">
+      <button @click="handleCloneToCurrent" class="btn-clone-history">
+        <span class="material-symbols-outlined">content_copy</span>
+        Establecer como presupuesto para el año actual ({{ currentYear }})
+      </button>
+    </div>
+
     <div class="table-card">
-      <div v-if="orderStore.orders.length > 0">
-        <div class="table-toolbar">
-          <div class="search-box">
-            <span class="material-symbols-outlined search-icon">search</span>
-            <input v-model="searchQuery" type="text" placeholder="Buscar en el histórico..." class="search-input" />
+      <div v-if="activeTab === 'ordenes'">
+        <div v-if="orderStore.orders.length > 0">
+          <div class="table-toolbar">
+            <div class="search-box">
+              <span class="material-symbols-outlined search-icon">search</span>
+              <input v-model="searchQuery" type="text" placeholder="Buscar en el histórico..." class="search-input" />
+            </div>
+            <div class="result-count">
+              <span>{{ filteredOrders.length }}</span> órdenes en {{ selectedYear }}
+            </div>
           </div>
-          <div class="result-count">
-            <span>{{ filteredOrders.length }}</span> órdenes en {{ selectedYear }}
+          <div class="table-scroll">
+            <OrderTable :orders="filteredOrders" />
           </div>
         </div>
-        <div class="table-scroll">
-          <OrderTable :orders="filteredOrders" />
+        <div v-else-if="orderStore.loading" class="loading-state">
+          <p>Cargando datos históricos...</p>
+        </div>
+        <div v-else class="empty-state">
+          <p>No se encontraron órdenes para el año {{ selectedYear }}.</p>
         </div>
       </div>
-      <div v-else-if="orderStore.loading" class="loading-state">
-        <p>Cargando datos históricos...</p>
-      </div>
-      <div v-else class="empty-state">
-        <p>No se encontraron órdenes para el año {{ selectedYear }}.</p>
+
+      <div v-else>
+        <!-- Presupuestos Table -->
+        <div v-if="presupuestoStore.presupuestos.length > 0">
+           <Table
+            :headers="['ID', 'Código', 'Nombre', 'Tipo', 'Cantidad', 'Gasto', 'Departamento']"
+            :data="presupuestoStore.presupuestos.map(p => [
+              p.idpresupuesto || p.idPresupuesto,
+              p.codigo || p.Codigo,
+              p.nombrepresupuesto || p.nombrePresupuesto,
+              formatType(p),
+              (p.cantidad || p.Cantidad) + '€',
+              (p.gasto || p.Gasto) + '€',
+              p.nombredepartamento || p.nombreDepartamento
+            ])"
+            :searchable="true"
+          />
+        </div>
+        <div v-else class="empty-state">
+          <p>No hay presupuestos registrados en el año {{ selectedYear }}.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -100,15 +174,75 @@ watch(selectedYear, () => {
 <style scoped>
 .view-container { padding: 24px; }
 .header-section {
-  display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px;
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;
 }
-.header-section h1 { font-size: 28px; font-weight: 700; color: #1f2937; margin-bottom: 8px; }
-.header-section p { color: #6b7280; }
+.header-section h1 { font-size: 32px; font-weight: 850; color: #0f172a; margin-bottom: 8px; letter-spacing: -0.03em;}
+.header-section p { color: #64748b; font-size: 1.1rem; }
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.tab-switcher {
+  display: flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 8px;
+  gap: 4px;
+}
+
+.tab-switcher button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-switcher button.active {
+  background: white;
+  color: #0f172a;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.actions-bar {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-clone-history {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: #0f172a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.2);
+}
+
+.btn-clone-history:hover {
+  transform: translateY(-2px);
+  background: #1e293b;
+}
 
 .year-selector {
   display: flex; align-items: center; gap: 16px;
-  background: #f8fafc; padding: 12px 20px; border-radius: 4px;
+  background: white; padding: 8px 16px; border-radius: 6px;
   border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 .year-selector label { font-weight: 700; color: #64748b; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
 

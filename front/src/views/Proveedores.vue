@@ -20,7 +20,7 @@ const form = ref({
   direccion: ''
 });
 
-const headers = ['ID', 'Nombre', 'Teléfono', 'Dirección'];
+const headers = ['ID', 'Nombre', 'Teléfono', 'Dirección', 'Acciones'];
 
 const canManage = computed(() => {
   const rol = authStore.user?.rol;
@@ -125,10 +125,17 @@ function viewProducts(id: number) {
           s.idproveedor,
           s.nombre,
           s.telefono,
-          s.direccion
+          s.direccion,
+          {
+            type: 'actions',
+            actions: [
+  { label: 'Ver Productos', icon: 'inventory_2', class: 'btn-products', onClick: () => viewProducts(s.idproveedor) },
+              { label: 'Editar', icon: 'edit', class: 'btn-edit', onClick: () => openEdit(s) },
+              { label: 'Eliminar', icon: 'delete', class: 'btn-delete', onClick: () => handleDelete(s.idproveedor) }
+            ]
+          }
         ])"
         :searchable="false"
-        :onRowClick="(row) => viewProducts(row[0])"
       />
       <div v-else-if="supplierStore.suppliers.length > 0" class="empty-state">
         <p>No se encontraron resultados para la búsqueda.</p>
@@ -338,7 +345,4 @@ function viewProducts(id: number) {
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-:deep(.btn-products) { color: #6366f1; }
-:deep(.btn-edit) { color: #f59e0b; }
-:deep(.btn-delete) { color: #ef4444; }
 </style>

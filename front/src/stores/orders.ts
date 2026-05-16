@@ -196,6 +196,29 @@ export const useOrderStore = defineStore('order', {
             }
         },
 
+        async deleteSupplier(id: number | string) {
+            try {
+                const response = await api.post(`/proveedores?action=delete&id=${id}`);
+                if (response.data.status === 'success') {
+                    await this.fetchSuppliers();
+                }
+                return response.data;
+            } catch (err) {
+                console.error('Error deleting supplier:', err);
+                throw err;
+            }
+        },
+        
+        async deleteOrder(id: number | string) {
+            try {
+                const response = await api.post('/ordenes/delete', { id });
+                return response.data;
+            } catch (err) {
+                console.error('Error deleting order:', err);
+                throw err;
+            }
+        },
+
         async fetchOrderDetail(id: string | number) {
             this.loading = true;
             try {
