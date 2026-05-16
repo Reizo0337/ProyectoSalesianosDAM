@@ -7,6 +7,7 @@ interface User {
   rol: string;
   idDepartamento: string;
   codigoDepartamento: string;
+  nombreDepartamento: string;
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -33,7 +34,8 @@ export const useAuthStore = defineStore('auth', {
             correo: response.data.correo,
             rol: response.data.rol,
             idDepartamento: response.data.idDepartamento,
-            codigoDepartamento: response.data.codigoDepartamento
+            codigoDepartamento: response.data.codigoDepartamento,
+            nombreDepartamento: response.data.nombreDepartamento
           };
           return true;
         } else {
@@ -77,7 +79,8 @@ export const useAuthStore = defineStore('auth', {
             correo: response.data.correo,
             rol: response.data.rol,
             idDepartamento: response.data.idDepartamento,
-            codigoDepartamento: response.data.codigoDepartamento
+            codigoDepartamento: response.data.codigoDepartamento,
+            nombreDepartamento: response.data.nombreDepartamento
           };
         } else {
           this.isAuthenticated = false;

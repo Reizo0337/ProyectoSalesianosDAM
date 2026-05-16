@@ -177,7 +177,7 @@ function viewProducts(id: number) {
 </template>
  
 <style scoped>
-.dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3.5rem; gap: 2rem; }
+.dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; gap: 2rem; }
 .header-left h1 { font-size: 2.75rem; font-weight: 850; color: #0f172a; letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 4px; }
 .subtitle { color: #64748b; font-size: 1.15rem; font-weight: 500; }
 .header-actions { display: flex; align-items: center; gap: 1rem; }

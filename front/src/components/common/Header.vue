@@ -184,7 +184,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 24px 0 17px;
   font-family: 'Inter', sans-serif;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   color: #f8fafc;

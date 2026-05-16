@@ -13,7 +13,7 @@ async function loadData() {
   loading.value = true;
   try {
     const role = authStore.user?.rol;
-    const dept = authStore.user?.idDepartamento;
+    const dept = authStore.user?.nombreDepartamento;
     
     if (role === 'Administrador' || role === 'Contable') {
       await presupuestoStore.getAllPresupuestos(selectedYear.value);
@@ -137,7 +137,7 @@ watch(selectedYear, loadData);
 </template>
  
 <style scoped>
-.dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3.5rem; }
+.dashboard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
 .header-left h1 { font-size: 2.75rem; font-weight: 850; color: #0f172a; letter-spacing: -0.04em; margin-bottom: 4px; }
 .subtitle { color: #64748b; font-size: 1.15rem; }
  

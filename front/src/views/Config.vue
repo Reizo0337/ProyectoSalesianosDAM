@@ -37,7 +37,7 @@ async function handleLogout() {
         </div>
         <div class="detail-item">
           <label>Departamento</label>
-          <span>{{ authStore.user?.idDepartamento || 'Sin asignar' }}</span>
+          <span>{{ authStore.user?.nombreDepartamento || 'Sin asignar' }}</span>
         </div>
       </div>
 

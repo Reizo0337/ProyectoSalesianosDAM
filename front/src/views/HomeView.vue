@@ -22,7 +22,7 @@ const isAdminOrContable = computed(() => {
 
 async function refreshData() {
   const rol = authStore.user?.rol;
-  const dep = authStore.user?.idDepartamento;
+  const dep = authStore.user?.nombreDepartamento;
 
   if (rol === 'Administrador' || rol === 'Contable') {
     await presupuestoStore.getAllPresupuestos(selectedYear.value);
@@ -201,31 +201,32 @@ watch(statsByType, (newVal) => {
         <h2 class="dynamic-greeting">{{ greeting }}, <span>{{ authStore.user?.nombre }}</span></h2>
       </div>
 
-      <!-- Row 2: Title + Buttons -->
+      <!-- Row 2: Title + Actions/KPIs -->
       <div class="header-main-row">
-        <h1>{{ viewTitle }}</h1>
-        <div class="quick-actions-grid">
-          <RouterLink 
-            v-for="action in quickActions" 
-            :key="action.label" 
-            :to="action.to" 
-            class="action-card"
-            :style="{ '--accent': action.color }"
-          >
-            <span class="material-symbols-outlined">{{ action.icon }}</span>
-            <span class="action-label">{{ action.label }}</span>
-          </RouterLink>
+        <div class="header-title-area">
+          <h1>{{ viewTitle }}</h1>
+          <p class="subtitle">Análisis detallado de recursos y ejecución financiera.</p>
         </div>
-      </div>
-
-      <!-- Row 3: Subtitle + KPIs -->
-      <div class="header-bottom-row">
-        <p class="subtitle">Análisis detallado de recursos y ejecución financiera.</p>
-        <div class="kpi-grid-header">
-          <div v-for="kpi in kpis" :key="kpi.label" class="kpi-item-mini">
-            <span class="kpi-dot" :style="{ backgroundColor: kpi.color }"></span>
-            <span class="kpi-val-mini">{{ kpi.value }}</span>
-            <span class="kpi-lab-mini">{{ kpi.label }}</span>
+        
+        <div class="header-actions-area">
+          <div class="quick-actions-grid">
+            <RouterLink 
+              v-for="action in quickActions" 
+              :key="action.label" 
+              :to="action.to" 
+              class="action-card"
+              :style="{ '--accent': action.color }"
+            >
+              <span class="material-symbols-outlined">{{ action.icon }}</span>
+              <span class="action-label">{{ action.label }}</span>
+            </RouterLink>
+          </div>
+          <div class="kpi-grid-header">
+            <div v-for="kpi in kpis" :key="kpi.label" class="kpi-item-mini">
+              <span class="kpi-dot" :style="{ backgroundColor: kpi.color }"></span>
+              <span class="kpi-val-mini">{{ kpi.value }}</span>
+              <span class="kpi-lab-mini">{{ kpi.label }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -394,16 +395,29 @@ watch(statsByType, (newVal) => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-bottom: 3.5rem;
+  margin-bottom: 2rem;
 }
  
 .header-main-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
 }
  
-.header-main-row h1 {
+.header-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+ 
+.header-actions-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+ 
+.header-title-area h1 {
   font-size: 2.75rem;
   font-weight: 850;
   color: #0f172a;
@@ -415,6 +429,7 @@ watch(statsByType, (newVal) => {
   color: #64748b;
   font-size: 1.15rem;
   font-weight: 500;
+  margin: 0;
 }
  
 .dynamic-greeting {

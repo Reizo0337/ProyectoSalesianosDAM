@@ -111,7 +111,7 @@ function formatDate(dateStr: string) {
           <th style="width: 1%; white-space: nowrap;">Acciones</th>
         </tr>
       </thead>
-      <transition-group name="list" tag="tbody">
+      <tbody>
         <tr
           v-for="(order, index) in paginatedOrders"
           :key="order.idorden"
@@ -166,7 +166,7 @@ function formatDate(dateStr: string) {
             </div>
           </td>
         </tr>
-      </transition-group>
+      </tbody>
     </table>
     <div class="pagination-controls" v-if="totalPages > 1">
       <button @click="prevPage" :disabled="currentPage === 1" class="page-btn">Anterior</button>

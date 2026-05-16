@@ -62,7 +62,7 @@ onMounted(async () => {
   await orderStore.fetchSuppliers();
   await presupuestoStore.getAllPresupuestos();
   
-  const userDept = authStore.user?.idDepartamento;
+  const userDept = authStore.user?.nombreDepartamento;
   if (userDept) {
      // Auto-fetch next sequence number
      const nextSeq = await orderStore.fetchNextSequence(form.departmentCode, form.year);
@@ -74,7 +74,7 @@ onMounted(async () => {
 });
 
 function updateBudgetSelection() {
-  const userDept = authStore.user?.idDepartamento;
+  const userDept = authStore.user?.nombreDepartamento;
   if (!userDept) return;
 
   const isPlan = form.typeCode === '0';

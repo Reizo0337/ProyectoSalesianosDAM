@@ -72,7 +72,7 @@ const canEdit = computed(() => {
   
   if (user.rol === 'Administrador') return true;
   if (user.rol === 'Jefe de Equipo') {
-    return user.idDepartamento === detail.value.order.dep_nombre;
+    return user.nombreDepartamento === detail.value.order.dep_nombre;
   }
   return false;
 });
@@ -88,7 +88,7 @@ const canManageInvoices = computed(() => {
   
   if (user.rol === 'Administrador' || user.rol === 'Contable') return true;
   if (user.rol === 'Jefe de Equipo') {
-    return user.idDepartamento === detail.value.order.dep_nombre;
+    return user.nombreDepartamento === detail.value.order.dep_nombre;
   }
   return false;
 });
