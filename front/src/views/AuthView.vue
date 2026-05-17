@@ -87,7 +87,6 @@ async function handleSubmit() {
             <img src="/img/logoPrincipal.jpg" alt="Salesianos" />
           </div>
           <div class="auth-header">
-            <h2>ZarGestion</h2>
             <p>Gestión integral Salesianos Zaragoza</p>
           </div>
 

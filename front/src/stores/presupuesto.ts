@@ -61,6 +61,30 @@ export const usePresupuestoStore = defineStore('presupuesto', {
                 console.error('Error al clonar presupuestos:', err);
                 return false;
             }
+        },
+        async createPresupuesto(data: any) {
+            try {
+                const response = await api.post('/presupuestos/create', data);
+                if (response.data.status === 'success') {
+                    return { success: true };
+                }
+                return { success: false, error: response.data.mensaje || 'Error al crear presupuesto' };
+            } catch (err: any) {
+                console.error('Error al crear presupuesto:', err);
+                return { success: false, error: err.response?.data?.mensaje || 'Error de conexión' };
+            }
+        },
+        async updatePresupuesto(data: any) {
+            try {
+                const response = await api.post('/presupuestos/update', data);
+                if (response.data.status === 'success') {
+                    return { success: true };
+                }
+                return { success: false, error: response.data.mensaje || 'Error al actualizar presupuesto' };
+            } catch (err: any) {
+                console.error('Error al actualizar presupuesto:', err);
+                return { success: false, error: err.response?.data?.mensaje || 'Error de conexión' };
+            }
         }
     },
 });

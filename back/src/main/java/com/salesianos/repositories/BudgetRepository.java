@@ -119,6 +119,82 @@ public class BudgetRepository {
         }
     }
 
+    public String[] getDeptInfo(long idDepartamento) {
+        String sql = "SELECT Codigo, Nombre FROM departamento WHERE idDepartamento = ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, idDepartamento);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return new String[]{rs.getString("Codigo"), rs.getString("Nombre")};
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error fetching department info for ID " + idDepartamento, e);
+        }
+        return null;
+    }
+
+    public boolean existsByTypeAndDept(String type, long idDepartamento, int anio, Long excludeId) {
+        String sql = "SELECT COUNT(*) FROM presupuesto WHERE Type = ? AND idDepartamento = ? AND Anio = ?";
+        if (excludeId != null) {
+            sql += " AND idPresupuesto != ?";
+        }
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, type);
+            stmt.setLong(2, idDepartamento);
+            stmt.setInt(3, anio);
+            if (excludeId != null) {
+                stmt.setLong(4, excludeId);
+            }
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error checking budget existence", e);
+        }
+        return false;
+    }
+
+    public boolean create(Budget budget, int anio) {
+        String sql = "INSERT INTO presupuesto (Codigo, Nombre, Cantidad, Gasto, idDepartamento, Type, Anio) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, budget.getCodigo());
+            stmt.setString(2, budget.getNombrePresupuesto());
+            stmt.setDouble(3, budget.getCantidad());
+            stmt.setDouble(4, budget.getGasto());
+            stmt.setLong(5, budget.getIdDepartamento());
+            stmt.setString(6, budget.getType());
+            stmt.setInt(7, anio);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error creating budget", e);
+            return false;
+        }
+    }
+
+    public boolean update(Budget budget) {
+        String sql = "UPDATE presupuesto SET Codigo = ?, Nombre = ?, Cantidad = ?, Gasto = ?, idDepartamento = ?, Type = ? WHERE idPresupuesto = ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, budget.getCodigo());
+            stmt.setString(2, budget.getNombrePresupuesto());
+            stmt.setDouble(3, budget.getCantidad());
+            stmt.setDouble(4, budget.getGasto());
+            stmt.setLong(5, budget.getIdDepartamento());
+            stmt.setString(6, budget.getType());
+            stmt.setLong(7, budget.getIdPresupuesto());
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating budget", e);
+            return false;
+        }
+    }
+
     private Budget mapResultSetToBudget(ResultSet rs) throws SQLException {
         Budget b = new Budget();
         b.setIdPresupuesto(rs.getLong("idPresupuesto"));

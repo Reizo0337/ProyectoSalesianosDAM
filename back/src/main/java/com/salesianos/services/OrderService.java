@@ -97,4 +97,8 @@ public class OrderService {
             notificationRepository.create(headId, msg, orderId);
         }
     }
+
+    public byte[] getInvoiceBlob(long idFactura) {
+        return orderRepository.getInvoiceBlob(idFactura);
+    }
 }

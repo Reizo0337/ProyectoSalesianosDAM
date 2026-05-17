@@ -130,6 +130,7 @@ const zoomOut = () => {
   overflow: hidden;
   border: 1px solid #e2e8f0;
   width: 100%;
+  height: 100%;
 }
 
 .pdf-toolbar {
@@ -193,7 +194,6 @@ const zoomOut = () => {
   display: flex;
   justify-content: center;
   background: #f1f5f9;
-  min-height: 600px;
 }
 
 canvas {

@@ -27,6 +27,10 @@ public class PresupuestoController {
                 return handleGetYears(response);
             case "/presupuestos/clone":
                 return handleClone(request, response);
+            case "/presupuestos/create":
+                return handleCreate(request, response, session);
+            case "/presupuestos/update":
+                return handleUpdate(request, response, session);
             default:
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 return JsonUtil.errorJson("Ruta de presupuestos no encontrada");
@@ -43,7 +47,7 @@ public class PresupuestoController {
         Map<String, String> user = (Map<String, String>) session.getAttribute("user");
         Role role = Role.fromString(user.get("rol"));
         if (!role.hasGlobalAccess()) {
-            dep = user.get("idDepartamento");
+            dep = user.get("nombreDepartamento");
         }
 
         if (dep == null) {
@@ -92,5 +96,101 @@ public class PresupuestoController {
         
         boolean ok = budgetService.cloneBudgets(fromYear, toYear);
         return ok ? JsonUtil.messageJson("Presupuestos clonados correctamente") : JsonUtil.errorJson("Error al clonar presupuestos");
+    }
+
+    private String handleCreate(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws IOException {
+        @SuppressWarnings("unchecked")
+        Map<String, String> user = (Map<String, String>) session.getAttribute("user");
+        if (user == null || !("Administrador".equals(user.get("rol")) || "Admin".equals(user.get("rol")))) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            return JsonUtil.errorJson("No tienes permisos para crear presupuestos");
+        }
+
+        String body = JsonUtil.getRequestBody(request);
+        String cantidadStr = JsonUtil.findJsonField(body, "cantidad");
+        String gastoStr = JsonUtil.findJsonField(body, "gasto");
+        String type = JsonUtil.findJsonField(body, "type");
+        String idDeptStr = JsonUtil.findJsonField(body, "iddepartamento");
+        String anioStr = JsonUtil.findJsonField(body, "anio");
+
+        if (cantidadStr == null || idDeptStr == null || type == null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return JsonUtil.errorJson("Faltan parámetros requeridos");
+        }
+
+        try {
+            double cantidad = Double.parseDouble(cantidadStr);
+            double gasto = (gastoStr != null && !gastoStr.isEmpty()) ? Double.parseDouble(gastoStr) : 0.0;
+            long idDepartamento = Long.parseLong(idDeptStr);
+            int anio = (anioStr != null && !anioStr.isEmpty()) ? Integer.parseInt(anioStr) : java.time.LocalDate.now().getYear();
+
+            Budget budget = new Budget();
+            budget.setCantidad(cantidad);
+            budget.setGasto(gasto);
+            budget.setIdDepartamento(idDepartamento);
+            budget.setType(type);
+
+            String res = budgetService.createBudget(budget, anio);
+            if ("success".equals(res)) {
+                return JsonUtil.messageJson("Presupuesto creado correctamente");
+            } else {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                return JsonUtil.errorJson(res);
+            }
+        } catch (NumberFormatException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return JsonUtil.errorJson("Formato de número inválido");
+        }
+    }
+
+    private String handleUpdate(HttpServletRequest request, HttpServletResponse response, HttpSession session) throws IOException {
+        @SuppressWarnings("unchecked")
+        Map<String, String> user = (Map<String, String>) session.getAttribute("user");
+        if (user == null || !("Administrador".equals(user.get("rol")) || "Admin".equals(user.get("rol")))) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            return JsonUtil.errorJson("No tienes permisos para editar presupuestos");
+        }
+
+        String body = JsonUtil.getRequestBody(request);
+        String idStr = JsonUtil.findJsonField(body, "idpresupuesto");
+        if (idStr == null) {
+            idStr = JsonUtil.findJsonField(body, "idPresupuesto");
+        }
+        String cantidadStr = JsonUtil.findJsonField(body, "cantidad");
+        String gastoStr = JsonUtil.findJsonField(body, "gasto");
+        String type = JsonUtil.findJsonField(body, "type");
+        String idDeptStr = JsonUtil.findJsonField(body, "iddepartamento");
+        String anioStr = JsonUtil.findJsonField(body, "anio");
+
+        if (idStr == null || cantidadStr == null || idDeptStr == null || type == null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return JsonUtil.errorJson("Faltan parámetros requeridos");
+        }
+
+        try {
+            long id = Long.parseLong(idStr);
+            double cantidad = Double.parseDouble(cantidadStr);
+            double gasto = (gastoStr != null && !gastoStr.isEmpty()) ? Double.parseDouble(gastoStr) : 0.0;
+            long idDepartamento = Long.parseLong(idDeptStr);
+            int anio = (anioStr != null && !anioStr.isEmpty()) ? Integer.parseInt(anioStr) : java.time.LocalDate.now().getYear();
+
+            Budget budget = new Budget();
+            budget.setIdPresupuesto(id);
+            budget.setCantidad(cantidad);
+            budget.setGasto(gasto);
+            budget.setIdDepartamento(idDepartamento);
+            budget.setType(type);
+
+            String res = budgetService.updateBudget(budget, anio);
+            if ("success".equals(res)) {
+                return JsonUtil.messageJson("Presupuesto actualizado correctamente");
+            } else {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                return JsonUtil.errorJson(res);
+            }
+        } catch (NumberFormatException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return JsonUtil.errorJson("Formato de número inválido");
+        }
     }
 }

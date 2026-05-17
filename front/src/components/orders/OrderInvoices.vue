@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
 import { useOrderStore } from '@/stores/orders';
 import { useToast } from 'vue-toastification';
 import PdfPreview from './PdfPreview.vue';
@@ -51,7 +51,10 @@ function closePreview() {
 async function downloadFactura(id: string | number) {
   try {
     const url = `http://localhost:8080/backend/api/facturas/view?id=${id}&action=download`;
-    const response = await fetch(url);
+    const response = await fetch(url, { credentials: 'include' });
+    if (!response.ok) {
+      throw new Error('Error de descarga');
+    }
     const blob = await response.blob();
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -66,6 +69,18 @@ async function downloadFactura(id: string | number) {
     toast.error('No se pudo descargar la factura. Inténtalo de nuevo.');
   }
 }
+
+watch(previewUrl, (newVal) => {
+  if (newVal) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+});
+
+onUnmounted(() => {
+  document.body.style.overflow = '';
+});
 </script>
 
 <template>

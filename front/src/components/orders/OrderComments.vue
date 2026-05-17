@@ -31,7 +31,7 @@ const filteredMentionUsers = computed(() => {
 
 async function fetchUsers() {
   try {
-    const res = await api.get(`/usuarios?idOrden=${props.orderId}`);
+    const res = await api.get(`/ordenes/usuarios?idOrden=${props.orderId}`);
     if (res.data.status === 'success') {
       users.value = res.data.usuarios || [];
     }

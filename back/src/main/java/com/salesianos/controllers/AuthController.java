@@ -11,7 +11,7 @@ import java.util.Map;
 
 public class AuthController {
     private final AuthService authService = new AuthService();
-
+    
     public String handle(HttpServletRequest request, HttpServletResponse response, String path, HttpSession session) throws IOException {
         switch (path) {
             case "/login": return handleLogin(request, response);

@@ -26,6 +26,66 @@ public class BudgetService {
     public boolean cloneBudgets(int fromYear, int toYear) {
         return repository.cloneBudgets(fromYear, toYear);
     }
+
+    public String createBudget(Budget budget, int anio) {
+        if (repository.existsByTypeAndDept(budget.getType(), budget.getIdDepartamento(), anio, null)) {
+            return "Ya existe un " + (budget.getType().equals("planInversion") ? "Plan de Inversión" : "Presupuesto Genérico") 
+                   + " asignado a este departamento para el año " + anio;
+        }
+
+        String[] deptInfo = repository.getDeptInfo(budget.getIdDepartamento());
+        if (deptInfo == null) {
+            return "El departamento seleccionado no existe";
+        }
+        String deptCode = deptInfo[0];
+        String deptName = deptInfo[1];
+
+        String generatedCode = "";
+        String generatedName = "";
+        if ("planInversion".equalsIgnoreCase(budget.getType())) {
+            generatedCode = "PLAN-" + deptCode + "-" + anio;
+            generatedName = "Plan de Inversión " + deptName + " " + anio;
+        } else {
+            generatedCode = "PRES-" + deptCode + "-" + anio;
+            generatedName = "Presupuesto " + deptName + " " + anio;
+        }
+
+        budget.setCodigo(generatedCode);
+        budget.setNombrePresupuesto(generatedName);
+
+        boolean ok = repository.create(budget, anio);
+        return ok ? "success" : "Error de base de datos al crear el presupuesto";
+    }
+
+    public String updateBudget(Budget budget, int anio) {
+        if (repository.existsByTypeAndDept(budget.getType(), budget.getIdDepartamento(), anio, budget.getIdPresupuesto())) {
+            return "Ya existe otro " + (budget.getType().equals("planInversion") ? "Plan de Inversión" : "Presupuesto Genérico") 
+                   + " asignado a este departamento para el año " + anio;
+        }
+
+        String[] deptInfo = repository.getDeptInfo(budget.getIdDepartamento());
+        if (deptInfo == null) {
+            return "El departamento seleccionado no existe";
+        }
+        String deptCode = deptInfo[0];
+        String deptName = deptInfo[1];
+
+        String generatedCode = "";
+        String generatedName = "";
+        if ("planInversion".equalsIgnoreCase(budget.getType())) {
+            generatedCode = "PLAN-" + deptCode + "-" + anio;
+            generatedName = "Plan de Inversión " + deptName + " " + anio;
+        } else {
+            generatedCode = "PRES-" + deptCode + "-" + anio;
+            generatedName = "Presupuesto " + deptName + " " + anio;
+        }
+
+        budget.setCodigo(generatedCode);
+        budget.setNombrePresupuesto(generatedName);
+
+        boolean ok = repository.update(budget);
+        return ok ? "success" : "Error de base de datos al actualizar el presupuesto";
+    }
 }
 
 // Podríamos ponerlos en archivos separados, pero para agilizar los creamos aquí si el usuario no tiene inconveniente.

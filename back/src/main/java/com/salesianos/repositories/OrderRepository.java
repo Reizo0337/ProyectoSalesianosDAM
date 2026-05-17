@@ -126,8 +126,19 @@ public class OrderRepository {
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
             stmt.setLong(1, o.getIdPresupuesto());
-            stmt.setString(2, o.getNumeroOrden());
-            stmt.setString(3, o.getNumeroPlan());
+            
+            if (o.getNumeroOrden() == null || o.getNumeroOrden().trim().isEmpty()) {
+                stmt.setNull(2, java.sql.Types.VARCHAR);
+            } else {
+                stmt.setString(2, o.getNumeroOrden());
+            }
+
+            if (o.getNumeroPlan() == null || o.getNumeroPlan().trim().isEmpty()) {
+                stmt.setNull(3, java.sql.Types.VARCHAR);
+            } else {
+                stmt.setString(3, o.getNumeroPlan());
+            }
+            
             stmt.setDouble(4, o.getCantidad());
             stmt.setBoolean(5, o.isInversion());
             stmt.setString(6, o.getTipo());
@@ -150,7 +161,13 @@ public class OrderRepository {
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setDouble(1, o.getCantidad());
-            stmt.setString(2, o.getNumeroPlan());
+            
+            if (o.getNumeroPlan() == null || o.getNumeroPlan().trim().isEmpty()) {
+                stmt.setNull(2, java.sql.Types.VARCHAR);
+            } else {
+                stmt.setString(2, o.getNumeroPlan());
+            }
+            
             stmt.setString(3, o.getTipo());
             stmt.setBoolean(4, o.isInversion());
             stmt.setString(5, o.getDescripcion());
@@ -269,6 +286,22 @@ public class OrderRepository {
             LOGGER.log(Level.SEVERE, "Error adding invoice", e);
             return false;
         }
+    }
+
+    public byte[] getInvoiceBlob(long idFactura) {
+        String sql = "SELECT blobFactura FROM facturas WHERE idFactura = ?";
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, idFactura);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBytes("blobFactura");
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error fetching invoice blob for ID " + idFactura, e);
+        }
+        return null;
     }
 
     // Mapper completo: para queries con JOIN a departamento y subconsultas

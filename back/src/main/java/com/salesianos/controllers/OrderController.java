@@ -24,6 +24,8 @@ public class OrderController {
     private final CommunicationService commService = new CommunicationService();
 
     public String handle(HttpServletRequest request, HttpServletResponse response, String path, HttpSession session) throws IOException {
+        if (path.startsWith("/facturas/view")) return handleViewInvoice(request, response);
+        
         // IMPORTANTE: Las rutas más específicas van ANTES que las genéricas
         // "/ordenes/update-status" DEBE ir antes de "/ordenes/update"
         if (path.startsWith("/ordenes/all")) return handleAllOrders(request, response);
@@ -39,7 +41,7 @@ public class OrderController {
         if (path.startsWith("/ordenes/next-number")) return handleGetSequence(request, response);
         if (path.startsWith("/ordenes/years")) return handleGetYears(response);
         if (path.startsWith("/comentarios")) return handleComments(request, response, session);
-        if (path.startsWith("/usuarios")) return handleUsers(request, response);
+        if (path.startsWith("/ordenes/usuarios")) return handleUsers(request, response);
         if (path.startsWith("/notificaciones")) return handleNotifications(request, response, session);
         
         // Ruta base /ordenes: POST con idPresupuesto = crear, otro POST = listar filtrado, GET = listar
@@ -299,5 +301,43 @@ public class OrderController {
             users = commService.getAllUserNames();
         }
         return JsonUtil.listToJson(users, "usuarios");
+    }
+
+    private String handleViewInvoice(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String idParam = request.getParameter("id");
+        if (idParam == null || idParam.isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return JsonUtil.errorJson("Falta ID de factura");
+        }
+
+        try {
+            long idFactura = Long.parseLong(idParam);
+            byte[] pdfBytes = orderService.getInvoiceBlob(idFactura);
+
+            if (pdfBytes == null) {
+                response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                return JsonUtil.errorJson("Factura no encontrada");
+            }
+
+            response.setContentType("application/pdf");
+            response.setContentLength(pdfBytes.length);
+
+            String action = request.getParameter("action");
+            if ("download".equalsIgnoreCase(action)) {
+                response.setHeader("Content-Disposition", "attachment; filename=\"factura_" + idFactura + ".pdf\"");
+            } else {
+                response.setHeader("Content-Disposition", "inline; filename=\"factura_" + idFactura + ".pdf\"");
+            }
+
+            // Escribir los bytes directamente en el output stream de la respuesta
+            response.getOutputStream().write(pdfBytes);
+            response.getOutputStream().flush();
+
+            // Retornamos null para que ApiServlet sepa que ya hemos escrito en el output stream y no intente devolver un JSON
+            return null;
+        } catch (NumberFormatException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return JsonUtil.errorJson("ID de factura inválido");
+        }
     }
 }
